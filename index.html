@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost City &amp; Skyline Drive · Brandon &amp; Amanda</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --parchment:     #f4eed8;
+            --parchment-mid: #ece5c7;
+            --parchment-border: #d0c49e;
+            --green:         #364f2c;
+            --green-mid:     #4d6e41;
+            --green-light:   #7a9a6e;
+            --rust:          #b05535;
+            --rust-dark:     #883f26;
+            --brown:         #3a2e1e;
+            --brown-mid:     #6b5240;
+            --brown-light:   #9c8066;
+            --text:          #352a1c;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Source Serif 4', Georgia, serif;
+            background-color: var(--parchment);
+            color: var(--text);
+            line-height: 1.65;
+        }
+
+        /* ── HEADER ──────────────────────────────────────────────── */
+
+        header {
+            background-color: var(--green);
+            color: var(--parchment);
+            text-align: center;
+            padding: 3rem 1.5rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle diamond-grid texture */
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                repeating-linear-gradient(45deg,
+                    rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px,
+                    transparent 1px, transparent 28px),
+                repeating-linear-gradient(-45deg,
+                    rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px,
+                    transparent 1px, transparent 28px);
+            pointer-events: none;
+        }
+
+        .header-inner { position: relative; z-index: 1; }
+
+        .header-eyebrow {
+            font-size: 0.68rem;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: rgba(244,238,216,0.55);
+            margin-bottom: 0.8rem;
+            font-weight: 300;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(2.2rem, 7vw, 4rem);
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: -0.01em;
+        }
+
+        header h1 em {
+            font-style: italic;
+            font-weight: 400;
+            color: rgba(244,238,216,0.65);
+        }
+
+        .header-rule {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.2rem;
+            margin: 1.25rem auto;
+            max-width: 340px;
+        }
+
+        .header-rule-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(244,238,216,0.3), transparent);
+        }
+
+        .compass {
+            opacity: 0.45;
+            flex-shrink: 0;
+        }
+
+        .header-meta {
+            font-size: 0.9rem;
+            color: rgba(244,238,216,0.6);
+            font-style: italic;
+            letter-spacing: 0.04em;
+        }
+
+        /* ── MAP ─────────────────────────────────────────────────── */
+
+        #map {
+            height: 480px;
+            width: 100%;
+            border-top: 3px solid var(--green);
+            border-bottom: 3px solid var(--green);
+        }
+
+        .leaflet-control-attribution {
+            font-size: 9px !important;
+            background: rgba(244,238,216,0.88) !important;
+            font-family: 'Source Serif 4', serif !important;
+        }
+
+        /* Custom numbered marker */
+        .custom-marker { background: none !important; border: none !important; }
+
+        .marker-pin {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--rust);
+            color: #fff;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18);
+            border: 2px solid #fff;
+            cursor: pointer;
+            transition: transform 0.18s, box-shadow 0.18s;
+        }
+
+        .marker-pin:hover  { transform: scale(1.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .marker-pin.active { background: var(--rust-dark); transform: scale(1.2); }
+
+        /* Popup */
+        .leaflet-popup-content-wrapper {
+            background: var(--parchment) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.22) !important;
+            font-family: 'Source Serif 4', serif !important;
+            border: 1px solid var(--parchment-border) !important;
+        }
+        .leaflet-popup-tip { background: var(--parchment) !important; }
+        .leaflet-popup-content { margin: 12px 14px !important; }
+
+        .popup-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.95rem;
+            color: var(--green);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .popup-loc {
+            font-size: 0.72rem;
+            color: var(--brown-light);
+            font-style: italic;
+        }
+
+        /* ── MAP LEGEND ──────────────────────────────────────────── */
+
+        #map-legend {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 0.6rem 1.2rem;
+            background: var(--parchment-mid);
+            border-bottom: 1px solid var(--parchment-border);
+            font-size: 0.72rem;
+            color: var(--brown-mid);
+            letter-spacing: 0.06em;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-transform: uppercase;
+        }
+
+        .legend-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--rust);
+            border: 1.5px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .legend-line {
+            width: 22px; height: 2.5px;
+            background: var(--rust);
+            border-radius: 2px;
+            flex-shrink: 0;
+            opacity: 0.8;
+        }
+
+        /* ── ITINERARY ───────────────────────────────────────────── */
+
+        #itinerary {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 4rem;
+        }
+
+        .section-eyebrow {
+            font-size: 0.65rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--green-light);
+            margin-bottom: 0.4rem;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--green);
+            margin-bottom: 0.3rem;
+        }
+
+        .section-subtitle {
+            font-size: 0.88rem;
+            color: var(--brown-light);
+            font-style: italic;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--parchment-border);
+        }
+
+        /* Stop cards */
+        .stop-card {
+            display: flex;
+            gap: 1.25rem;
+            padding: 1.4rem 1.5rem;
+            margin-bottom: 0.875rem;
+            background: rgba(255,255,255,0.55);
+            border: 1px solid var(--parchment-border);
+            border-left: 4px solid var(--green-light);
+            border-radius: 0 6px 6px 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: border-left-color 0.22s, box-shadow 0.22s, background 0.22s;
+            scroll-margin-top: 24px;
+        }
+
+        .stop-card:hover {
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.75);
+        }
+
+        .stop-card.highlighted {
+            border-left-color: var(--rust);
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 4px 16px rgba(176,85,53,0.16);
+        }
+
+        .stop-badge {
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--green-light);
+            color: #fff;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 3px;
+            transition: background 0.22s;
+            flex-shrink: 0;
+        }
+
+        .stop-card.highlighted .stop-badge { background: var(--rust); }
+
+        .stop-body { flex: 1; min-width: 0; }
+
+        .stop-tag {
+            display: inline-block;
+            font-size: 0.6rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            padding: 0.15rem 0.55rem;
+            border-radius: 3px;
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+        }
+
+        .tag-base    { background: rgba(54,79,44,0.14); color: var(--green); }
+        .tag-wv      { background: rgba(54,79,44,0.1);  color: var(--green-mid); }
+        .tag-va      { background: rgba(176,85,53,0.12); color: var(--rust-dark); }
+        .tag-skyline { background: rgba(54,79,44,0.08); color: var(--green-mid); }
+
+        .stop-location {
+            font-size: 0.67rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--brown-light);
+            margin-bottom: 0.25rem;
+        }
+
+        .stop-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.18rem;
+            font-weight: 600;
+            color: var(--green);
+            line-height: 1.2;
+            margin-bottom: 0.55rem;
+        }
+
+        .stop-desc {
+            font-size: 0.9rem;
+            color: var(--brown-mid);
+            line-height: 1.65;
+            margin-bottom: 0.55rem;
+        }
+
+        .stop-notes {
+            font-size: 0.8rem;
+            color: var(--brown-light);
+            font-style: italic;
+            padding-top: 0.6rem;
+            border-top: 1px dashed var(--parchment-border);
+            line-height: 1.5;
+        }
+
+        /* ── FOOTER ──────────────────────────────────────────────── */
+
+        footer {
+            background: var(--green);
+            color: rgba(244,238,216,0.5);
+            text-align: center;
+            padding: 1.4rem 1.5rem;
+            font-size: 0.75rem;
+            font-style: italic;
+        }
+
+        footer a { color: rgba(244,238,216,0.45); text-decoration: none; }
+        footer a:hover { color: rgba(244,238,216,0.7); }
+
+        /* ── RESPONSIVE ──────────────────────────────────────────── */
+
+        @media (max-width: 600px) {
+            #map { height: 360px; }
+            .stop-card { gap: 0.9rem; padding: 1.1rem 1.1rem; }
+            .stop-name { font-size: 1.05rem; }
+            .stop-desc { font-size: 0.86rem; }
+            #itinerary { padding: 2rem 1rem 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="header-eyebrow">A road trip for two &nbsp;·&nbsp; Hardy County, WV &rarr; Shenandoah NP, VA</div>
+        <h1>Lost City <em>&amp;</em><br>Skyline Drive</h1>
+        <div class="header-rule">
+            <div class="header-rule-line"></div>
+            <!-- Compass rose -->
+            <svg class="compass" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="14" cy="14" r="12.5" stroke="rgba(244,238,216,0.4)" stroke-width="1"/>
+                <path d="M14 2 L15.4 12 L14 11 L12.6 12 Z" fill="rgba(244,238,216,0.7)"/>
+                <path d="M14 26 L12.6 16 L14 17 L15.4 16 Z" fill="rgba(244,238,216,0.3)"/>
+                <path d="M2 14 L12 12.6 L11 14 L12 15.4 Z" fill="rgba(244,238,216,0.3)"/>
+                <path d="M26 14 L16 15.4 L17 14 L16 12.6 Z" fill="rgba(244,238,216,0.3)"/>
+                <circle cx="14" cy="14" r="1.5" fill="rgba(244,238,216,0.5)"/>
+                <text x="14" y="6.5" text-anchor="middle" font-size="4" fill="rgba(244,238,216,0.75)" font-family="serif" font-weight="bold">N</text>
+            </svg>
+            <div class="header-rule-line"></div>
+        </div>
+        <div class="header-meta">Brandon &amp; Amanda</div>
+    </div>
+</header>
+
+<div id="map"></div>
+
+<div id="map-legend">
+    <div class="legend-item">
+        <div class="legend-dot"></div>
+        <span>Stop</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-line"></div>
+        <span>Day-trip route</span>
+    </div>
+    <div class="legend-item" style="margin-left:auto; color: var(--brown-light); text-transform: none; letter-spacing: 0; font-style: italic;">
+        Click a marker or card to explore
+    </div>
+</div>
+
+<section id="itinerary">
+    <div class="section-eyebrow">The Plan</div>
+    <h2 class="section-title">Day-Trip Route &amp; Stops</h2>
+    <p class="section-subtitle">Starting and ending near Lost City, WV. Head east over the mountains, pick up Skyline Drive at the north end, drive south through the park, then loop back through the Shenandoah Valley.</p>
+    <div id="stop-cards"></div>
+</section>
+
+<footer>
+    Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, SRTM &nbsp;&middot;&nbsp;
+    Style &copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GXnM=" crossorigin=""></script>
+<script>
+const stops = [
+    {
+        name: "Lost City",
+        location: "Hardy County, WV",
+        tag: "base",
+        tagLabel: "Base Camp",
+        coords: [38.9028, -79.0817],
+        description: "Our home base for the trip — a tiny, unincorporated community tucked into the Cacapon Valley with mountain ridges in every direction. Quiet roads, no cell service, and exactly the right pace.",
+        notes: "Tip: Fill the tank before leaving — nearest reliable gas is in Moorefield or Baker. Good idea to pack a cooler."
+    },
+    {
+        name: "Wardensville",
+        location: "Hardy County, WV",
+        tag: "wv",
+        tagLabel: "West Virginia",
+        coords: [39.0748, -78.5970],
+        description: "A small mountain town on the eastern edge of Hardy County, sitting right at the divide between West Virginia's ridges and the Shenandoah Valley. A few shops and a good stopping point for an early snack or coffee.",
+        notes: "Tip: Last WV stop before crossing into Virginia. The drive east from here through the mountains on WV-55 is scenic."
+    },
+    {
+        name: "Front Royal",
+        location: "Warren County, VA",
+        tag: "va",
+        tagLabel: "Virginia",
+        coords: [38.9162, -78.1939],
+        description: "The northern gateway to Shenandoah National Park and Mile 0 of Skyline Drive. The town has a good main street for grabbing lunch supplies before heading into the park — there's limited food once you're on the drive.",
+        notes: "Tip: Park entrance fee is collected here. America the Beautiful Annual Pass works if you have one. Gas up — the park has no stations."
+    },
+    {
+        name: "Dickey Ridge Visitor Center",
+        location: "Skyline Drive · Mile 4.6",
+        tag: "skyline",
+        tagLabel: "Skyline Drive",
+        coords: [38.8892, -78.2089],
+        description: "The first major stop inside Shenandoah NP. Wide views open up in both directions — the Shenandoah Valley to the west, the Virginia Piedmont to the east. A good place to orient and stretch after the drive in.",
+        notes: "Tip: Restrooms and water here. The Fox Hollow Trail (1.2 mi loop) winds through an old homestead and is an easy, pleasant walk."
+    },
+    {
+        name: "Thornton Gap",
+        location: "Skyline Drive · Mile 31.5",
+        tag: "skyline",
+        tagLabel: "Skyline Drive",
+        coords: [38.6629, -78.3253],
+        description: "Where US-211 crosses the Blue Ridge at a dramatic mountain gap. The Panorama area sits right at the crossing — the views west down the Luray Valley toward Massanutten Mountain are some of the best on the entire drive.",
+        notes: "Tip: Worth a 15-minute stop at the overlooks here. The gap itself feels different from the ridgeline — you're in the cleft of the mountains."
+    },
+    {
+        name: "Big Meadows",
+        location: "Skyline Drive · Mile 51.2",
+        tag: "skyline",
+        tagLabel: "Skyline Drive",
+        coords: [38.5293, -78.4354],
+        description: "One of Shenandoah's signature spots — a large, open highland meadow at 3,500 ft with huge skies and deer almost always visible. Lewis Falls and Dark Hollow Falls are short hikes from the parking area.",
+        notes: "Tip: The Byrd Visitor Center has exhibits on the park's history and ecology. Good lunch spot — the camp store has basics, the lodge has a full dining room. This is roughly the halfway point; a natural place to turn around or press south."
+    },
+    {
+        name: "Swift Run Gap",
+        location: "Skyline Drive · Mile 65.5",
+        tag: "skyline",
+        tagLabel: "Skyline Drive",
+        coords: [38.3809, -78.5248],
+        description: "Where US-33 crosses the ridge — a clean exit point from Skyline Drive heading west toward Luray and the Shenandoah Valley. A natural bookend to the southern leg of the drive.",
+        notes: "Tip: If time allows, keep going to Loft Mountain Overlook at Mile 79 — it's one of the most expansive panoramic views on the entire drive. Then double back here to exit."
+    },
+    {
+        name: "Luray",
+        location: "Page County, VA",
+        tag: "va",
+        tagLabel: "Virginia",
+        coords: [38.6629, -78.4573],
+        description: "A charming small city in the Page Valley, home to Luray Caverns — one of the most impressive show caves on the East Coast, with massive formations and an unusual stalacpipe organ. Even if you skip the caverns, the town has solid food options for the drive back.",
+        notes: "Tip: Luray Caverns is a legitimate bucket-list stop if you haven't been. Budget about 2 hours if you go. Good dinner options on Main Street — the town is used to road-trippers."
+    },
+    {
+        name: "Smoke Hole Canyon",
+        location: "Hardy County, WV",
+        tag: "wv",
+        tagLabel: "West Virginia",
+        coords: [38.8170, -79.1833],
+        description: "A dramatic gorge cut by the South Branch of the Potomac River on the return leg — sheer limestone cliffs rising above the water, a narrow road, and almost no one else around. A perfect scenic wind-down before getting back to Lost City.",
+        notes: "Tip: Smoke Hole Caverns is nearby if you want to go underground. Take the road slow — it's narrow and the river views are worth pausing for."
+    }
+];
+
+// ── Build stop cards ─────────────────────────────────────────────
+const container = document.getElementById('stop-cards');
+stops.forEach((stop, i) => {
+    const card = document.createElement('div');
+    card.className = 'stop-card';
+    card.id = `stop-${i}`;
+    card.innerHTML = `
+        <div class="stop-badge">${i + 1}</div>
+        <div class="stop-body">
+            <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
+            <div class="stop-location">${stop.location}</div>
+            <div class="stop-name">${stop.name}</div>
+            <div class="stop-desc">${stop.description}</div>
+            ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
+        </div>
+    `;
+    container.appendChild(card);
+});
+
+// ── Map init ─────────────────────────────────────────────────────
+const map = L.map('map', { scrollWheelZoom: false });
+
+L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+}).addTo(map);
+
+// Route polyline — close the loop back to Lost City
+const routeCoords = stops.map(s => s.coords);
+routeCoords.push(stops[0].coords);
+
+L.polyline(routeCoords, {
+    color: '#b05535',
+    weight: 2.5,
+    opacity: 0.78,
+    lineJoin: 'round',
+    lineCap: 'round'
+}).addTo(map);
+
+// ── Markers ──────────────────────────────────────────────────────
+let activePinEl  = null;
+let activeCardEl = null;
+
+function activate(i) {
+    // Marker
+    if (activePinEl)  activePinEl.classList.remove('active');
+    const pin = document.getElementById(`pin-${i}`);
+    if (pin) { pin.classList.add('active'); activePinEl = pin; }
+
+    // Card
+    if (activeCardEl) activeCardEl.classList.remove('highlighted');
+    const card = document.getElementById(`stop-${i}`);
+    if (card) { card.classList.add('highlighted'); activeCardEl = card; }
+}
+
+stops.forEach((stop, i) => {
+    const icon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div class="marker-pin" id="pin-${i}">${i + 1}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -16]
+    });
+
+    const marker = L.marker(stop.coords, { icon }).addTo(map);
+
+    marker.bindPopup(
+        `<div class="popup-name">${stop.name}</div><div class="popup-loc">${stop.location}</div>`,
+        { closeButton: false, maxWidth: 200, offset: [0, -4] }
+    );
+
+    marker.on('click', () => {
+        activate(i);
+        const card = document.getElementById(`stop-${i}`);
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Card click → pan map + open popup
+    const card = document.getElementById(`stop-${i}`);
+    card.addEventListener('click', () => {
+        activate(i);
+        map.setView(stop.coords, Math.max(map.getZoom(), 11), { animate: true, duration: 0.5 });
+        setTimeout(() => marker.openPopup(), 350);
+    });
+});
+
+// ── Fit bounds ───────────────────────────────────────────────────
+map.fitBounds(L.latLngBounds(stops.map(s => s.coords)), { padding: [36, 36] });
+</script>
+
+</body>
+</html>
