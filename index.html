@@ -121,6 +121,12 @@
             width: 100%;
             border-top: 3px solid var(--green);
             border-bottom: 3px solid var(--green);
+            background: var(--parchment-mid);
+        }
+
+        /* Give the OSM tiles a warm, vintage topo-map feel */
+        .leaflet-tile-pane {
+            filter: sepia(0.45) saturate(0.7) hue-rotate(-8deg) contrast(1.05) brightness(0.97);
         }
 
         .leaflet-control-attribution {
@@ -419,7 +425,7 @@
 </section>
 
 <footer>
-    Map tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &nbsp;&middot;&nbsp; World Topo Map
+    Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GXnM=" crossorigin=""></script>
@@ -530,9 +536,10 @@ stops.forEach((stop, i) => {
 // ── Map init ─────────────────────────────────────────────────────
 const map = L.map('map', { scrollWheelZoom: false });
 
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 17,
-    attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong)'
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    crossOrigin: true,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
 // Route polyline — close the loop back to Lost City
