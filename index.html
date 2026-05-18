@@ -398,11 +398,19 @@
         /* ── RESPONSIVE ──────────────────────────────────────────── */
 
         @media (max-width: 600px) {
-            #map { height: 360px; }
-            .stop-card { gap: 0.9rem; padding: 1.1rem 1.1rem; }
-            .stop-name { font-size: 1.05rem; }
-            .stop-desc { font-size: 0.86rem; }
-            #itinerary { padding: 2rem 1rem 3rem; }
+            header { padding: 1.5rem 1.25rem 1.25rem; }
+            #map { height: 260px; }
+            #map-legend { font-size: 0.62rem; gap: 0.9rem; padding: 0.4rem 0.9rem; }
+            #map-legend .legend-item:last-child { display: none; }
+            .stop-card { gap: 0.75rem; padding: 1rem; }
+            .stop-name { font-size: 1rem; }
+            .stop-desc { font-size: 0.84rem; }
+            .stop-notes { font-size: 0.76rem; }
+            .stop-badge { width: 26px; height: 26px; font-size: 12px; }
+            #itinerary { padding: 1.5rem 0.9rem 2.5rem; }
+            .section-title { font-size: 1.45rem; }
+            .section-subtitle { font-size: 0.82rem; }
+            .photo-link { font-size: 0.78rem; }
         }
     </style>
 </head>
@@ -605,7 +613,7 @@ const container = document.getElementById('stop-cards');
 let globalIdx = 0;
 const markerRefs = [];
 
-function buildSection(stops, pinColor) {
+function buildSection(stops, pinColor, target = container) {
     stops.forEach(stop => {
         const idx = globalIdx++;
         const card = document.createElement('div');
@@ -623,7 +631,7 @@ function buildSection(stops, pinColor) {
                 <a class="photo-link" href="${mapsUrl}" target="_blank" rel="noopener">📷 View photos on Google Maps</a>
             </div>
         `;
-        container.appendChild(card);
+        target.appendChild(card);
         markerRefs.push({ stop, idx, pinColor });
     });
 }
@@ -632,13 +640,21 @@ buildSection(mainStops, '#b05535');
 
 const divider = document.createElement('div');
 divider.className = 'route-divider';
-divider.innerHTML = '<span class="route-divider-label">Alternative Day Trip · North Fork Mountain Road</span>';
+divider.style.cursor = 'pointer';
+divider.title = 'Toggle alternative day trip';
+divider.innerHTML = '<span class="route-divider-label">&#9660; Show Alternative Day Trip · North Fork Mountain Road</span>';
 container.appendChild(divider);
 
-buildSection(altStops, '#1a6b9a');
+const altWrapper = document.createElement('div');
+altWrapper.id = 'alt-section';
+altWrapper.style.display = 'none';
+container.appendChild(altWrapper);
+
+buildSection(altStops, '#1a6b9a', altWrapper);
 
 // ── Map init ─────────────────────────────────────────────────────
-const map = L.map('map', { scrollWheelZoom: false });
+const isMobile = window.innerWidth <= 600;
+const map = L.map('map', { scrollWheelZoom: false, dragging: !isMobile, tap: !isMobile });
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
@@ -651,10 +667,21 @@ const mainCoords = mainStops.map(s => s.coords);
 mainCoords.push(mainStops[0].coords);
 L.polyline(mainCoords, { color: '#b05535', weight: 2.5, opacity: 0.78, lineJoin: 'round', lineCap: 'round' }).addTo(map);
 
-// Alt route polyline — dashed blue
-L.polyline(altStops.map(s => s.coords), {
+// Alt route polyline — hidden until toggled
+const altPolyline = L.polyline(altStops.map(s => s.coords), {
     color: '#1a6b9a', weight: 2.5, opacity: 0.75, dashArray: '6, 8', lineJoin: 'round', lineCap: 'round'
-}).addTo(map);
+});
+
+// ── Alt section toggle ───────────────────────────────────────────
+let altVisible = false;
+divider.addEventListener('click', () => {
+    altVisible = !altVisible;
+    document.getElementById('alt-section').style.display = altVisible ? '' : 'none';
+    if (altVisible) altPolyline.addTo(map); else map.removeLayer(altPolyline);
+    divider.querySelector('.route-divider-label').innerHTML =
+        (altVisible ? '&#9650;' : '&#9660;') + ' ' + (altVisible ? 'Hide' : 'Show') +
+        ' Alternative Day Trip · North Fork Mountain Road';
+});
 
 // ── Markers ──────────────────────────────────────────────────────
 let activePinEl  = null;
