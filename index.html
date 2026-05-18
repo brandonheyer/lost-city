@@ -319,6 +319,34 @@
         .tag-va       { background: rgba(176,85,53,0.12);  color: var(--rust-dark); }
         .tag-skyline  { background: rgba(54,79,44,0.08);   color: var(--green-mid); }
         .tag-overlook { background: rgba(160,110,20,0.14); color: #7a5200; }
+        .tag-alt      { background: rgba(20,90,140,0.12);  color: #1a5a7a; }
+
+        .photo-link {
+            display: inline-block;
+            margin-top: 0.6rem;
+            font-size: 0.75rem;
+            color: var(--rust);
+            text-decoration: none;
+            border-bottom: 1px dashed rgba(176,85,53,0.4);
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .photo-link:hover { color: var(--rust-dark); border-bottom-color: var(--rust-dark); }
+
+        .route-divider {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 1.75rem 0 1.25rem;
+            color: var(--brown-light);
+        }
+        .route-divider::before,
+        .route-divider::after { content: ''; flex: 1; height: 1px; background: var(--parchment-border); }
+        .route-divider-label {
+            font-size: 0.62rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
 
         .stop-location {
             font-size: 0.67rem;
@@ -431,7 +459,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const stops = [
+const mainStops = [
     {
         name: "Lost City",
         location: "Hardy County, WV",
@@ -542,24 +570,72 @@ const stops = [
     }
 ];
 
+const altStops = [
+    {
+        name: "North Fork Mountain — South Access",
+        location: "Pendleton County, WV · Forest Road 79",
+        tag: "alt",
+        tagLabel: "N. Fork Mtn Drive",
+        coords: [38.641, -79.374],
+        description: "The south entry to Forest Road 79, one of the most rewarding drives in the Potomac Highlands. The road climbs steeply onto the ridge and stays there, with open views into Germany Valley on the west and the South Branch watershed on the east. Almost no traffic.",
+        notes: "Tip: Gravel road, passable for any passenger car in dry conditions — just go slow. Watch for backpackers; this is also a popular hiking route."
+    },
+    {
+        name: "Germany Valley Overlook",
+        location: "North Fork Mountain Ridge · FR-79",
+        tag: "alt",
+        tagLabel: "N. Fork Mtn Drive",
+        coords: [38.812, -79.284],
+        description: "Partway along the ridge, the trees open to reveal Germany Valley — a gorgeous enclosed limestone valley far below, with Spruce Mountain rising on the far side. It feels prehistoric. On a clear day the scale of it stops you in your tracks.",
+        notes: "Tip: This is the money view on the whole road. Give it time. Bring binoculars — the valley floor detail is incredible and deer are almost always visible."
+    },
+    {
+        name: "North Fork Mountain — North Exit",
+        location: "Grant County, WV · WV-55 near Cabins",
+        tag: "alt",
+        tagLabel: "N. Fork Mtn Drive",
+        coords: [38.963, -79.175],
+        description: "The north end of FR-79 drops back to WV-55 near the tiny community of Cabins. From here it's a beautiful 30-minute drive west back to Lost City through the North Fork and South Branch valleys.",
+        notes: "Tip: Stop in Moorefield on the way back if you need food or gas. The stretch of WV-55 west through the valleys is a great wind-down."
+    }
+];
+
 // ── Build stop cards ─────────────────────────────────────────────
 const container = document.getElementById('stop-cards');
-stops.forEach((stop, i) => {
-    const card = document.createElement('div');
-    card.className = 'stop-card';
-    card.id = `stop-${i}`;
-    card.innerHTML = `
-        <div class="stop-badge">${i + 1}</div>
-        <div class="stop-body">
-            <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
-            <div class="stop-location">${stop.location}</div>
-            <div class="stop-name">${stop.name}</div>
-            <div class="stop-desc">${stop.description}</div>
-            ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
-        </div>
-    `;
-    container.appendChild(card);
-});
+let globalIdx = 0;
+const markerRefs = [];
+
+function buildSection(stops, pinColor) {
+    stops.forEach(stop => {
+        const idx = globalIdx++;
+        const card = document.createElement('div');
+        card.className = 'stop-card';
+        card.id = `stop-${idx}`;
+        const mapsUrl = `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
+        card.innerHTML = `
+            <div class="stop-badge">${idx + 1}</div>
+            <div class="stop-body">
+                <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
+                <div class="stop-location">${stop.location}</div>
+                <div class="stop-name">${stop.name}</div>
+                <div class="stop-desc">${stop.description}</div>
+                ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
+                <a class="photo-link" href="${mapsUrl}" target="_blank" rel="noopener">📷 View photos on Google Maps</a>
+            </div>
+        `;
+        container.appendChild(card);
+        markerRefs.push({ stop, idx, pinColor });
+    });
+}
+
+buildSection(mainStops, '#b05535');
+
+const divider = document.createElement('div');
+divider.className = 'route-divider';
+divider.innerHTML = '<span class="route-divider-label">Alternative Day Trip · North Fork Mountain Road</span>';
+container.appendChild(divider);
+
+buildSection(altStops, '#1a6b9a');
 
 // ── Map init ─────────────────────────────────────────────────────
 const map = L.map('map', { scrollWheelZoom: false });
@@ -570,16 +646,14 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// Route polyline — close the loop back to Lost City
-const routeCoords = stops.map(s => s.coords);
-routeCoords.push(stops[0].coords);
+// Main route polyline — closed loop
+const mainCoords = mainStops.map(s => s.coords);
+mainCoords.push(mainStops[0].coords);
+L.polyline(mainCoords, { color: '#b05535', weight: 2.5, opacity: 0.78, lineJoin: 'round', lineCap: 'round' }).addTo(map);
 
-L.polyline(routeCoords, {
-    color: '#b05535',
-    weight: 2.5,
-    opacity: 0.78,
-    lineJoin: 'round',
-    lineCap: 'round'
+// Alt route polyline — dashed blue
+L.polyline(altStops.map(s => s.coords), {
+    color: '#1a6b9a', weight: 2.5, opacity: 0.75, dashArray: '6, 8', lineJoin: 'round', lineCap: 'round'
 }).addTo(map);
 
 // ── Markers ──────────────────────────────────────────────────────
@@ -587,50 +661,44 @@ let activePinEl  = null;
 let activeCardEl = null;
 
 function activate(i) {
-    // Marker
     if (activePinEl)  activePinEl.classList.remove('active');
     const pin = document.getElementById(`pin-${i}`);
     if (pin) { pin.classList.add('active'); activePinEl = pin; }
-
-    // Card
     if (activeCardEl) activeCardEl.classList.remove('highlighted');
     const card = document.getElementById(`stop-${i}`);
     if (card) { card.classList.add('highlighted'); activeCardEl = card; }
 }
 
-stops.forEach((stop, i) => {
+markerRefs.forEach(({ stop, idx, pinColor }) => {
     const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div class="marker-pin" id="pin-${i}">${i + 1}</div>`,
+        html: `<div class="marker-pin" id="pin-${idx}" style="background:${pinColor}">${idx + 1}</div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
         popupAnchor: [0, -16]
     });
 
     const marker = L.marker(stop.coords, { icon }).addTo(map);
-
     marker.bindPopup(
         `<div class="popup-name">${stop.name}</div><div class="popup-loc">${stop.location}</div>`,
         { closeButton: false, maxWidth: 200, offset: [0, -4] }
     );
-
     marker.on('click', () => {
-        activate(i);
-        const card = document.getElementById(`stop-${i}`);
+        activate(idx);
+        const card = document.getElementById(`stop-${idx}`);
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-
-    // Card click → pan map + open popup
-    const card = document.getElementById(`stop-${i}`);
-    card.addEventListener('click', () => {
-        activate(i);
+    const card = document.getElementById(`stop-${idx}`);
+    card.addEventListener('click', e => {
+        if (e.target.closest('.photo-link')) return;
+        activate(idx);
         map.setView(stop.coords, Math.max(map.getZoom(), 11), { animate: true, duration: 0.5 });
         setTimeout(() => marker.openPopup(), 350);
     });
 });
 
 // ── Fit bounds ───────────────────────────────────────────────────
-map.fitBounds(L.latLngBounds(stops.map(s => s.coords)), { padding: [36, 36] });
+map.fitBounds(L.latLngBounds([...mainStops, ...altStops].map(s => s.coords)), { padding: [36, 36] });
 </script>
 
 </body>
