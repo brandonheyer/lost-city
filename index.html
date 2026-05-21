@@ -412,6 +412,35 @@
             .section-subtitle { font-size: 0.82rem; }
             .photo-link { font-size: 0.78rem; }
         }
+
+        /* ── ROUTE TOGGLE ────────────────────────────────────────── */
+
+        .route-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .route-btn {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border: 1.5px solid var(--parchment-border);
+            border-radius: 4px;
+            background: var(--cream);
+            color: var(--brown-mid);
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.82rem;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            transition: background 0.18s, border-color 0.18s, color 0.18s;
+        }
+
+        .route-btn:hover { border-color: var(--green-light); color: var(--green); background: rgba(77,110,65,0.06); }
+        .route-btn.active { background: var(--green); border-color: var(--green); color: var(--parchment); }
+
+        .stop-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.35rem; }
+        .stop-tags .stop-tag { margin-bottom: 0; }
+        .tag-lunch { background: rgba(176,85,53,0.14); color: var(--rust-dark); }
     </style>
 </head>
 <body>
@@ -457,7 +486,11 @@
 <section id="itinerary">
     <div class="section-eyebrow">The Plan</div>
     <h2 class="section-title">Day-Trip Route &amp; Stops</h2>
-    <p class="section-subtitle">Starting and ending near Lost City, WV. Head east over the mountains, pick up Skyline Drive at the north end, drive south through the park, then loop back through the Shenandoah Valley.</p>
+    <p class="section-subtitle" id="route-subtitle"></p>
+    <div class="route-toggle">
+        <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Loop Route</button>
+        <button class="route-btn" id="btn-outback" onclick="switchRoute('outback')">Out &amp; Back</button>
+    </div>
     <div id="stop-cards"></div>
 </section>
 
@@ -536,9 +569,10 @@ const mainStops = [
         location: "Skyline Drive · Mile 51.2",
         tag: "skyline",
         tagLabel: "Skyline Drive",
+        lunch: true,
         coords: [38.5293, -78.4354],
         description: "One of Shenandoah's signature spots — a large, open highland meadow at 3,500 ft with huge skies and deer almost always visible. Lewis Falls and Dark Hollow Falls are short hikes from the parking area.",
-        notes: "Tip: The Byrd Visitor Center has exhibits on the park's history and ecology. Good lunch spot — the camp store has basics, the lodge has a full dining room. This is roughly the halfway point; a natural place to turn around or press south."
+        notes: "Tip: The Byrd Visitor Center wayside has quick food; the lodge has a full sit-down dining room. This is roughly the halfway point on the loop — a natural place to eat and stretch before pressing south."
     },
     {
         name: "Bearfence Mountain",
@@ -608,84 +642,57 @@ const altStops = [
     }
 ];
 
-// ── Build stop cards ─────────────────────────────────────────────
-const container = document.getElementById('stop-cards');
-let globalIdx = 0;
-const markerRefs = [];
+// ── Out & Back stop list (shares most stops, Big Meadows is turnaround) ──
+const outbackStops = [
+    ...mainStops.slice(0, 7),  // Lost City → Crescent Rock
+    {
+        ...mainStops[7],       // Big Meadows, modified for turnaround context
+        lunch: true,
+        turnaround: true,
+        description: "The turnaround point for the out-and-back route, and the lunch stop. A wide highland meadow at 3,500 ft — deer almost always out in the open, huge sky, great light. The lodge has a full dining room; the Byrd Visitor Center wayside has quicker options.",
+        notes: "Tip: After lunch, Dark Hollow Falls (1.4 mi round trip) is the perfect leg-stretcher before heading back north. Leave enough time — the drive back is just as good as the drive out, different light on the same views."
+    }
+];
 
-function buildSection(stops, pinColor, target = container) {
-    stops.forEach(stop => {
-        const idx = globalIdx++;
-        const card = document.createElement('div');
-        card.className = 'stop-card';
-        card.id = `stop-${idx}`;
-        const mapsUrl = `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
-        card.innerHTML = `
-            <div class="stop-badge">${idx + 1}</div>
-            <div class="stop-body">
-                <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
-                <div class="stop-location">${stop.location}</div>
-                <div class="stop-name">${stop.name}</div>
-                <div class="stop-desc">${stop.description}</div>
-                ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
-                <a class="photo-link" href="${mapsUrl}" target="_blank" rel="noopener">📷 View photos on Google Maps</a>
-            </div>
-        `;
-        target.appendChild(card);
-        markerRefs.push({ stop, idx, pinColor });
-    });
-}
+// Front Royal note modified for out-and-back (dinner on return)
+outbackStops[2] = {
+    ...outbackStops[2],
+    notes: "Tip: Park entrance fee collected here — America the Beautiful Pass accepted. Gas up before entering. On the return: Front Royal is the best dinner stop before the 45-min drive back to Lost City."
+};
 
-buildSection(mainStops, '#b05535');
-
-const divider = document.createElement('div');
-divider.className = 'route-divider';
-divider.style.cursor = 'pointer';
-divider.title = 'Toggle alternative day trip';
-divider.innerHTML = '<span class="route-divider-label">&#9660; Show Alternative Day Trip · North Fork Mountain Road</span>';
-container.appendChild(divider);
-
-const altWrapper = document.createElement('div');
-altWrapper.id = 'alt-section';
-altWrapper.style.display = 'none';
-container.appendChild(altWrapper);
-
-buildSection(altStops, '#1a6b9a', altWrapper);
+// ── Route config ─────────────────────────────────────────────────
+const ROUTE_CONFIG = {
+    loop: {
+        stops: mainStops,
+        subtitle: 'Starting and ending near Lost City, WV. Head east over the mountains, pick up Skyline Drive at Mile 0, drive south through the park, then loop back through the Shenandoah Valley.',
+        polylineCoords() { const c = mainStops.map(s => s.coords); c.push(c[0]); return c; }
+    },
+    outback: {
+        stops: outbackStops,
+        subtitle: 'Starting and ending near Lost City, WV. Drive east to Skyline Drive, head south to Big Meadows for lunch, then return north on the same road — same overlooks, opposite direction, different light.',
+        polylineCoords() { const c = outbackStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
+    }
+};
 
 // ── Map init ─────────────────────────────────────────────────────
 const isMobile = window.innerWidth <= 600;
 const map = L.map('map', { scrollWheelZoom: false, dragging: !isMobile, tap: !isMobile });
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    crossOrigin: true,
+    maxZoom: 18, crossOrigin: true,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// Main route polyline — closed loop
-const mainCoords = mainStops.map(s => s.coords);
-mainCoords.push(mainStops[0].coords);
-L.polyline(mainCoords, { color: '#b05535', weight: 2.5, opacity: 0.78, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-
-// Alt route polyline — hidden until toggled
 const altPolyline = L.polyline(altStops.map(s => s.coords), {
     color: '#1a6b9a', weight: 2.5, opacity: 0.75, dashArray: '6, 8', lineJoin: 'round', lineCap: 'round'
 });
 
-// ── Alt section toggle ───────────────────────────────────────────
-let altVisible = false;
-divider.addEventListener('click', () => {
-    altVisible = !altVisible;
-    document.getElementById('alt-section').style.display = altVisible ? '' : 'none';
-    if (altVisible) altPolyline.addTo(map); else map.removeLayer(altPolyline);
-    divider.querySelector('.route-divider-label').innerHTML =
-        (altVisible ? '&#9650;' : '&#9660;') + ' ' + (altVisible ? 'Hide' : 'Show') +
-        ' Alternative Day Trip · North Fork Mountain Road';
-});
-
-// ── Markers ──────────────────────────────────────────────────────
-let activePinEl  = null;
-let activeCardEl = null;
+// ── State ─────────────────────────────────────────────────────────
+let activeRoute    = null;
+let activePolyline = null;
+let activeMarkers  = [];
+let activePinEl    = null;
+let activeCardEl   = null;
 
 function activate(i) {
     if (activePinEl)  activePinEl.classList.remove('active');
@@ -696,36 +703,151 @@ function activate(i) {
     if (card) { card.classList.add('highlighted'); activeCardEl = card; }
 }
 
-markerRefs.forEach(({ stop, idx, pinColor }) => {
-    const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div class="marker-pin" id="pin-${idx}" style="background:${pinColor}">${idx + 1}</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-        popupAnchor: [0, -16]
+// ── Card builder ─────────────────────────────────────────────────
+function buildCards(stops, target) {
+    stops.forEach((stop, i) => {
+        const card = document.createElement('div');
+        card.className = 'stop-card';
+        card.id = `stop-${i}`;
+        const mapsUrl = `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
+        card.innerHTML = `
+            <div class="stop-badge">${i + 1}</div>
+            <div class="stop-body">
+                <div class="stop-tags">
+                    <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
+                    ${stop.lunch      ? '<span class="stop-tag tag-lunch">Lunch Stop</span>'  : ''}
+                    ${stop.turnaround ? '<span class="stop-tag tag-overlook">↩ Turnaround</span>' : ''}
+                </div>
+                <div class="stop-location">${stop.location}</div>
+                <div class="stop-name">${stop.name}</div>
+                <div class="stop-desc">${stop.description}</div>
+                ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
+                <a class="photo-link" href="${mapsUrl}" target="_blank" rel="noopener">📷 View photos on Google Maps</a>
+            </div>
+        `;
+        target.appendChild(card);
     });
+}
 
-    const marker = L.marker(stop.coords, { icon }).addTo(map);
-    marker.bindPopup(
-        `<div class="popup-name">${stop.name}</div><div class="popup-loc">${stop.location}</div>`,
-        { closeButton: false, maxWidth: 200, offset: [0, -4] }
-    );
-    marker.on('click', () => {
-        activate(idx);
-        const card = document.getElementById(`stop-${idx}`);
-        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// ── Marker builder ────────────────────────────────────────────────
+function addMarkers(stops) {
+    stops.forEach((stop, i) => {
+        const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div class="marker-pin" id="pin-${i}">${i + 1}</div>`,
+            iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
+        });
+        const marker = L.marker(stop.coords, { icon }).addTo(map);
+        marker.bindPopup(
+            `<div class="popup-name">${stop.name}</div><div class="popup-loc">${stop.location}</div>`,
+            { closeButton: false, maxWidth: 200, offset: [0, -4] }
+        );
+        marker.on('click', () => {
+            activate(i);
+            const card = document.getElementById(`stop-${i}`);
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        const card = document.getElementById(`stop-${i}`);
+        if (card) card.addEventListener('click', e => {
+            if (e.target.closest('.photo-link')) return;
+            activate(i);
+            map.setView(stop.coords, Math.max(map.getZoom(), 11), { animate: true, duration: 0.5 });
+            setTimeout(() => marker.openPopup(), 350);
+        });
+        activeMarkers.push(marker);
     });
-    const card = document.getElementById(`stop-${idx}`);
-    card.addEventListener('click', e => {
-        if (e.target.closest('.photo-link')) return;
-        activate(idx);
-        map.setView(stop.coords, Math.max(map.getZoom(), 11), { animate: true, duration: 0.5 });
-        setTimeout(() => marker.openPopup(), 350);
+}
+
+// ── Route switcher ────────────────────────────────────────────────
+const container     = document.getElementById('stop-cards');
+const mainCardsEl   = document.createElement('div');
+container.appendChild(mainCardsEl);
+
+// Alt section (N. Fork Mountain) — appended after main cards, hidden by default
+const altDivider = document.createElement('div');
+altDivider.className = 'route-divider';
+altDivider.style.cursor = 'pointer';
+altDivider.title = 'Toggle alternative day trip';
+altDivider.innerHTML = '<span class="route-divider-label">&#9660; Show Alternative Day Trip · North Fork Mountain Road</span>';
+container.appendChild(altDivider);
+
+const altWrapper = document.createElement('div');
+altWrapper.id = 'alt-section';
+altWrapper.style.display = 'none';
+container.appendChild(altWrapper);
+
+// Build alt cards once (they don't change with route toggle)
+(function buildAlt() {
+    let altIdx = 0;
+    altStops.forEach(stop => {
+        const idx = altIdx++;
+        const card = document.createElement('div');
+        card.className = 'stop-card';
+        card.id = `alt-stop-${idx}`;
+        const mapsUrl = `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
+        card.innerHTML = `
+            <div class="stop-badge" style="background:#1a6b9a">${idx + 1}</div>
+            <div class="stop-body">
+                <div class="stop-tags"><span class="stop-tag tag-alt">${stop.tagLabel}</span></div>
+                <div class="stop-location">${stop.location}</div>
+                <div class="stop-name">${stop.name}</div>
+                <div class="stop-desc">${stop.description}</div>
+                ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
+                <a class="photo-link" href="${mapsUrl}" target="_blank" rel="noopener">📷 View photos on Google Maps</a>
+            </div>
+        `;
+        altWrapper.appendChild(card);
+        card.addEventListener('click', e => {
+            if (e.target.closest('.photo-link')) return;
+            map.setView(stop.coords, Math.max(map.getZoom(), 11), { animate: true, duration: 0.5 });
+        });
     });
+})();
+
+let altVisible = false;
+altDivider.addEventListener('click', () => {
+    altVisible = !altVisible;
+    altWrapper.style.display = altVisible ? '' : 'none';
+    if (altVisible) altPolyline.addTo(map); else map.removeLayer(altPolyline);
+    altDivider.querySelector('.route-divider-label').innerHTML =
+        (altVisible ? '&#9650;' : '&#9660;') + ' ' + (altVisible ? 'Hide' : 'Show') +
+        ' Alternative Day Trip · North Fork Mountain Road';
 });
 
-// ── Fit bounds ───────────────────────────────────────────────────
-map.fitBounds(L.latLngBounds([...mainStops, ...altStops].map(s => s.coords)), { padding: [36, 36] });
+function switchRoute(key) {
+    if (key === activeRoute) return;
+    activeRoute = key;
+
+    // Buttons
+    document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-${key}`).classList.add('active');
+
+    // Subtitle
+    document.getElementById('route-subtitle').textContent = ROUTE_CONFIG[key].subtitle;
+
+    // Clear cards + markers
+    mainCardsEl.innerHTML = '';
+    activeMarkers.forEach(m => map.removeLayer(m));
+    activeMarkers = [];
+    activePinEl = activeCardEl = null;
+
+    // Remove old polyline
+    if (activePolyline) map.removeLayer(activePolyline);
+
+    // Build cards & markers for new route
+    const cfg = ROUTE_CONFIG[key];
+    buildCards(cfg.stops, mainCardsEl);
+    addMarkers(cfg.stops);
+
+    activePolyline = L.polyline(cfg.polylineCoords(), {
+        color: '#b05535', weight: 2.5, opacity: 0.78, lineJoin: 'round', lineCap: 'round'
+    }).addTo(map);
+
+    map.fitBounds(L.latLngBounds(cfg.stops.map(s => s.coords)), { padding: [36, 36] });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+switchRoute('loop');
 </script>
 
 </body>
