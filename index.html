@@ -400,6 +400,7 @@
         @media (max-width: 600px) {
             header { padding: 1.5rem 1.25rem 1.25rem; }
             #map { height: 260px; }
+            #map-section { position: sticky; top: 0; z-index: 400; }
             #map-legend { font-size: 0.62rem; gap: 0.9rem; padding: 0.4rem 0.9rem; }
             #map-legend .legend-item:last-child { display: none; }
             .stop-card { gap: 0.75rem; padding: 1rem; }
@@ -441,6 +442,18 @@
         .stop-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.35rem; }
         .stop-tags .stop-tag { margin-bottom: 0; }
         .tag-lunch { background: rgba(176,85,53,0.14); color: var(--rust-dark); }
+        .tag-food  { background: rgba(195,145,30,0.14); color: #7a5500; }
+
+        .gmaps-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            font-size: 0.78rem;
+            color: var(--rust);
+            text-decoration: none;
+            border-bottom: 1px dashed rgba(176,85,53,0.4);
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .gmaps-link:hover { color: var(--rust-dark); border-bottom-color: var(--rust-dark); }
     </style>
 </head>
 <body>
@@ -467,6 +480,7 @@
     </div>
 </header>
 
+<div id="map-section">
 <div id="map"></div>
 
 <div id="map-legend">
@@ -482,14 +496,17 @@
         Click a marker or card to explore
     </div>
 </div>
+</div>
 
 <section id="itinerary">
     <div class="section-eyebrow">The Plan</div>
     <h2 class="section-title">Day-Trip Route &amp; Stops</h2>
     <p class="section-subtitle" id="route-subtitle"></p>
+    <a id="gmaps-link" class="gmaps-link" href="#" target="_blank" rel="noopener">Open route in Google Maps ↗</a>
     <div class="route-toggle">
         <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Loop Route</button>
         <button class="route-btn" id="btn-outback" onclick="switchRoute('outback')">Out &amp; Back</button>
+        <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
     </div>
     <div id="stop-cards"></div>
 </section>
@@ -500,14 +517,35 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// ── Food stops (shared across routes) ────────────────────────────
+const FRONT_ROYAL_FOOD_STOP = {
+    name: "Front Royal — Food Stop",
+    location: "Warren County, VA · Before the park",
+    tag: "food", tagLabel: "Food Stop",
+    coords: [38.9165, -78.1944],
+    placeSearch: "Front Royal Virginia restaurants",
+    description: "Last real town before entering Skyline Drive. Good to-go options for lunch in the park: <strong>Main Street Mill</strong> (sandwiches & burgers), <strong>Jalisco Restaurant</strong> (Mexican, fast service), <strong>Element Beer Works</strong> (food + craft beer on tap).",
+    notes: "Tip: Apple House in Linden (10 min north on US-522) is worth the detour — famous fried apple pies and deli sandwiches. A road-trip institution."
+};
+
+const LURAY_FOOD_STOP = {
+    name: "Luray — Food Stop",
+    location: "Page County, VA",
+    tag: "food", tagLabel: "Food Stop",
+    coords: [38.6629, -78.4573],
+    placeSearch: "Luray Virginia restaurants",
+    description: "Solid small city with good dinner options before the drive back to Lost City: <strong>Gathering Grounds</strong> (café, all-day breakfast), <strong>Vic's Italian Kitchen</strong> (pizza & pasta), <strong>Elementary Burritos</strong> (fast & reliable), <strong>Brookside Cabins restaurant</strong> (sit-down).",
+    notes: "Tip: Luray is 45 minutes from Lost City — pizza and burritos travel fine; soup does not."
+};
+
 const mainStops = [
     {
         name: "Lost City",
-        location: "Hardy County, WV",
+        location: "Hardy County, WV · 452 Settlers Valley Way",
         tag: "base",
         tagLabel: "Base Camp",
         coords: [38.9028, -79.0817],
-        description: "Our home base for the trip — a tiny, unincorporated community tucked into the Cacapon Valley with mountain ridges in every direction. Quiet roads, no cell service, and exactly the right pace.",
+        description: "Our starting point — 452 Settlers Valley Way, a tiny unincorporated community tucked into the Cacapon Valley with mountain ridges in every direction. Quiet roads, no cell service, and exactly the right pace.",
         notes: "Tip: Fill the tank before leaving — nearest reliable gas is in Moorefield or Baker. Good idea to pack a cooler."
     },
     {
@@ -525,15 +563,17 @@ const mainStops = [
         tag: "va",
         tagLabel: "Virginia",
         coords: [38.9162, -78.1939],
-        description: "The northern gateway to Shenandoah National Park and Mile 0 of Skyline Drive. The town has a good main street for grabbing lunch supplies before heading into the park — there's limited food once you're on the drive.",
+        description: "The northern gateway to Shenandoah National Park and Mile 0 of Skyline Drive. The town has a good main street — grab lunch supplies before heading into the park, since there's limited food once you're on the drive.",
         notes: "Tip: Park entrance fee is collected here. America the Beautiful Annual Pass works if you have one. Gas up — the park has no stations."
     },
+    FRONT_ROYAL_FOOD_STOP,
     {
         name: "Dickey Ridge Visitor Center",
         location: "Skyline Drive · Mile 4.6",
         tag: "skyline",
         tagLabel: "Skyline Drive",
         coords: [38.8892, -78.2089],
+        placeSearch: "Dickey Ridge Visitor Center Shenandoah National Park",
         description: "The first major stop inside Shenandoah NP. Wide views open up in both directions — the Shenandoah Valley to the west, the Virginia Piedmont to the east. A good place to orient and stretch after the drive in.",
         notes: "Tip: Restrooms and water here. The Fox Hollow Trail (1.2 mi loop) winds through an old homestead and is an easy, pleasant walk."
     },
@@ -543,6 +583,7 @@ const mainStops = [
         tag: "overlook",
         tagLabel: "Scenic Overlook",
         coords: [38.7845, -78.2382],
+        placeSearch: "Hogback Overlook Shenandoah National Park",
         description: "One of the most dramatic views on all of Skyline Drive — the Shenandoah River loops in giant meanders far below and the patchwork valley floor stretches toward the western ridges. Multiple pull-offs clustered here, so it's easy to linger.",
         notes: "Tip: Hit this in the morning if you can — the low light catches the river and valley in a way that the midday sun washes out. Amanda: this one's worth a long stop."
     },
@@ -552,6 +593,7 @@ const mainStops = [
         tag: "skyline",
         tagLabel: "Skyline Drive",
         coords: [38.6629, -78.3253],
+        placeSearch: "Thornton Gap Panorama Skyline Drive",
         description: "Where US-211 crosses the Blue Ridge at a dramatic mountain gap. The Panorama area sits right at the crossing — the views west down the Luray Valley toward Massanutten Mountain are some of the best on the entire drive.",
         notes: "Tip: Worth a 15-minute stop at the overlooks here. The gap itself feels different from the ridgeline — you're in the cleft of the mountains."
     },
@@ -561,6 +603,7 @@ const mainStops = [
         tag: "overlook",
         tagLabel: "Scenic Overlook",
         coords: [38.5621, -78.3921],
+        placeSearch: "Crescent Rock Overlook Skyline Drive Virginia",
         description: "A wide ledge of exposed rock with a commanding view of Hawksbill Mountain — the highest peak in Shenandoah NP — rising above the forest to the south. One of those spots where the scale of the Blue Ridge really hits.",
         notes: "Tip: The rock ledge itself is part of the experience — walk out to the edge for the full effect. Comfortable for lingering if weather cooperates."
     },
@@ -571,6 +614,7 @@ const mainStops = [
         tagLabel: "Skyline Drive",
         lunch: true,
         coords: [38.5293, -78.4354],
+        placeSearch: "Big Meadows Shenandoah National Park",
         description: "One of Shenandoah's signature spots — a large, open highland meadow at 3,500 ft with huge skies and deer almost always visible. Lewis Falls and Dark Hollow Falls are short hikes from the parking area.",
         notes: "Tip: The Byrd Visitor Center wayside has quick food; the lodge has a full sit-down dining room. This is roughly the halfway point on the loop — a natural place to eat and stretch before pressing south."
     },
@@ -580,6 +624,7 @@ const mainStops = [
         tag: "overlook",
         tagLabel: "Scenic Overlook",
         coords: [38.4865, -78.4196],
+        placeSearch: "Bearfence Mountain Overlook Shenandoah National Park",
         description: "The only truly 360° panorama on all of Skyline Drive, earned by a short scramble over exposed quartzite boulders (0.8 miles round trip). On a clear day you can see the Massanutten Valley, the Alleghenies to the west, and the Piedmont rolling east.",
         notes: "Tip: The scramble is rocky but not technical — just watch your footing. This is the one overlook on the drive where you're above the treeline and can see in every direction. Worth every step."
     },
@@ -590,17 +635,9 @@ const mainStops = [
         tagLabel: "Skyline Drive",
         coords: [38.3809, -78.5248],
         description: "Where US-33 crosses the ridge — a clean exit point from Skyline Drive heading west toward Luray and the Shenandoah Valley. A natural bookend to the southern leg of the drive.",
-        notes: "Tip: If time allows, keep going to Loft Mountain Overlook at Mile 79 — it's one of the most expansive panoramic views on the entire drive. Then double back here to exit."
+        notes: "Tip: If time allows, keep going to Loft Mountain Overlook at Mile 79 — one of the most expansive panoramic views on the entire drive. Then double back here to exit."
     },
-    {
-        name: "Luray",
-        location: "Page County, VA",
-        tag: "va",
-        tagLabel: "Virginia",
-        coords: [38.6629, -78.4573],
-        description: "A charming small city in the Page Valley, home to Luray Caverns — one of the most impressive show caves on the East Coast, with massive formations and an unusual stalacpipe organ. Even if you skip the caverns, the town has solid food options for the drive back.",
-        notes: "Tip: Luray Caverns is a legitimate bucket-list stop if you haven't been. Budget about 2 hours if you go. Good dinner options on Main Street — the town is used to road-trippers."
-    },
+    LURAY_FOOD_STOP,
     {
         name: "Smoke Hole Canyon",
         location: "Hardy County, WV",
@@ -642,35 +679,61 @@ const altStops = [
     }
 ];
 
-// ── Out & Back stop list (shares most stops, Big Meadows is turnaround) ──
+// ── Out & Back stop list ──────────────────────────────────────────
 const outbackStops = [
-    ...mainStops.slice(0, 7),  // Lost City → Crescent Rock
-    {
-        ...mainStops[7],       // Big Meadows, modified for turnaround context
-        lunch: true,
+    mainStops[0],   // Lost City
+    mainStops[1],   // Wardensville
+    {               // Front Royal — modified notes for out-and-back
+        ...mainStops[2],
+        notes: "Tip: Park entrance fee collected here — America the Beautiful Pass accepted. Gas up before entering. On the return: Front Royal is the best dinner stop before the 45-min drive back to Lost City."
+    },
+    mainStops[3],   // Front Royal Food Stop
+    mainStops[4],   // Dickey Ridge
+    mainStops[5],   // Hogback
+    mainStops[6],   // Thornton Gap
+    mainStops[7],   // Crescent Rock
+    {               // Big Meadows — turnaround
+        ...mainStops[8],
         turnaround: true,
         description: "The turnaround point for the out-and-back route, and the lunch stop. A wide highland meadow at 3,500 ft — deer almost always out in the open, huge sky, great light. The lodge has a full dining room; the Byrd Visitor Center wayside has quicker options.",
         notes: "Tip: After lunch, Dark Hollow Falls (1.4 mi round trip) is the perfect leg-stretcher before heading back north. Leave enough time — the drive back is just as good as the drive out, different light on the same views."
     }
 ];
 
-// Front Royal note modified for out-and-back (dinner on return)
-outbackStops[2] = {
-    ...outbackStops[2],
-    notes: "Tip: Park entrance fee collected here — America the Beautiful Pass accepted. Gas up before entering. On the return: Front Royal is the best dinner stop before the 45-min drive back to Lost City."
-};
+// ── Via Luray stop list (enter Skyline Drive at Thornton Gap) ─────
+const luraylStops = [
+    mainStops[0],    // Lost City
+    mainStops[1],    // Wardensville
+    LURAY_FOOD_STOP, // Luray — food stop (departure)
+    mainStops[6],    // Thornton Gap (Mile 31.5 — Skyline Drive entry)
+    mainStops[7],    // Crescent Rock Overlook
+    {                // Big Meadows — turnaround
+        ...mainStops[8],
+        turnaround: true,
+        description: "The turnaround point and lunch stop — a wide highland meadow at 3,500 ft with huge skies and deer almost always in the open. The lodge has a full dining room; the Byrd Visitor Center wayside has quick options. After lunch, Dark Hollow Falls is a fine leg-stretcher.",
+        notes: "Tip: You'll pass back through Luray on the return — perfect dinner stop before the last leg home. Vic's Italian Kitchen or Elementary Burritos travel well if you'd rather take food to go."
+    }
+];
 
 // ── Route config ─────────────────────────────────────────────────
 const ROUTE_CONFIG = {
     loop: {
         stops: mainStops,
         subtitle: 'Starting and ending near Lost City, WV. Head east over the mountains, pick up Skyline Drive at Mile 0, drive south through the park, then loop back through the Shenandoah Valley.',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/39.0748,-78.5970/38.9162,-78.1939/38.8892,-78.2089/38.7845,-78.2382/38.5293,-78.4354/38.4865,-78.4196/38.3809,-78.5248/38.6629,-78.4573/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = mainStops.map(s => s.coords); c.push(c[0]); return c; }
     },
     outback: {
         stops: outbackStops,
         subtitle: 'Starting and ending near Lost City, WV. Drive east to Skyline Drive, head south to Big Meadows for lunch, then return north on the same road — same overlooks, opposite direction, different light.',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/39.0748,-78.5970/38.9162,-78.1939/38.8892,-78.2089/38.7845,-78.2382/38.6629,-78.3253/38.5621,-78.3921/38.5293,-78.4354/38.9162,-78.1939/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = outbackStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
+    },
+    luray: {
+        stops: luraylStops,
+        subtitle: 'Same out-and-back concept, different entry point. Drive to Luray first, enter Skyline Drive at Thornton Gap (Mile 31.5), lunch at Big Meadows, return. Skips the first 31 miles of the drive but saves approach time and keeps Luray as your food stop on both ends.',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/39.0748,-78.5970/38.6629,-78.4573/38.6629,-78.3253/38.5621,-78.3921/38.5293,-78.4354/38.6629,-78.4573/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
+        polylineCoords() { const c = luraylStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
     }
 };
 
@@ -709,7 +772,9 @@ function buildCards(stops, target) {
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `stop-${i}`;
-        const mapsUrl = `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
+        const mapsUrl = stop.placeSearch
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.placeSearch)}`
+            : `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
         card.innerHTML = `
             <div class="stop-badge">${i + 1}</div>
             <div class="stop-body">
@@ -822,8 +887,9 @@ function switchRoute(key) {
     document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`btn-${key}`).classList.add('active');
 
-    // Subtitle
+    // Subtitle + gmaps link
     document.getElementById('route-subtitle').textContent = ROUTE_CONFIG[key].subtitle;
+    document.getElementById('gmaps-link').href = ROUTE_CONFIG[key].gmapsUrl;
 
     // Clear cards + markers
     mainCardsEl.innerHTML = '';
