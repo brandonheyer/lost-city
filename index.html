@@ -401,11 +401,6 @@
 
         /* ── RESPONSIVE ──────────────────────────────────────────── */
 
-        /* Sticky map — applies at all viewport sizes */
-        /* will-change: transform pre-creates a GPU compositor layer, fixing the CSS
-           filter on .leaflet-tile-pane causing stale compositing when sticky kicks in */
-        #map-section { position: sticky; top: 0; z-index: 400; will-change: transform; }
-
         /* ── MINOR STOPS TOGGLE ──────────────────────────────────── */
 
         .minor-toggle-row { margin-bottom: 0.75rem; }
@@ -984,18 +979,39 @@ function toggleMinorStops() {
     rebuildRoute(activeRoute);
 }
 
-// ── Sticky map fix ────────────────────────────────────────────────
-// Leaflet doesn't update tile positions when its container moves via sticky CSS.
-// When the sentinel scrolls out of view, the map-section has pinned — call
-// invalidateSize() to force Leaflet to recalculate the container offset.
-const mapSentinel = document.createElement('div');
-mapSentinel.style.cssText = 'height:1px;pointer-events:none;';
-document.getElementById('map-section').insertAdjacentElement('beforebegin', mapSentinel);
+// ── Map pinning (JS-controlled position:fixed) ───────────────────
+// CSS position:sticky misfires on this device — switching to explicit JS pinning
+// so we control the exact frame the map transitions to fixed and can call
+// invalidateSize() + setView() before the next paint.
+const mapSectionEl  = document.getElementById('map-section');
+const headerEl      = document.querySelector('header');
 
-new IntersectionObserver(([entry]) => {
-    document.getElementById('map-section').classList.toggle('is-sticky', !entry.isIntersecting);
-    if (!entry.isIntersecting) requestAnimationFrame(() => map.invalidateSize());
-}).observe(mapSentinel);
+const mapPinPlaceholder = document.createElement('div');
+mapPinPlaceholder.style.display = 'none';
+mapSectionEl.insertAdjacentElement('afterend', mapPinPlaceholder);
+
+let mapIsPinned = false;
+
+function syncMapPin() {
+    const shouldPin = headerEl.getBoundingClientRect().bottom <= 0;
+    if (shouldPin === mapIsPinned) return;
+    mapIsPinned = shouldPin;
+    if (shouldPin) {
+        mapPinPlaceholder.style.height = mapSectionEl.offsetHeight + 'px';
+        mapPinPlaceholder.style.display = 'block';
+        mapSectionEl.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:400;';
+        requestAnimationFrame(() => {
+            map.invalidateSize();
+            map.setView(map.getCenter(), map.getZoom(), {animate: false});
+        });
+    } else {
+        mapSectionEl.style.cssText = '';
+        mapPinPlaceholder.style.display = 'none';
+    }
+}
+
+window.addEventListener('scroll', syncMapPin, {passive: true});
+syncMapPin(); // handle pre-scrolled state on page load
 
 // ── Init ──────────────────────────────────────────────────────────
 switchRoute('loop');
