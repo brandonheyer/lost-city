@@ -158,6 +158,7 @@
 
         .marker-pin:hover  { transform: scale(1.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
         .marker-pin.active { background: var(--rust-dark); transform: scale(1.2); }
+        .marker-pin.minor  { background: var(--brown-light); font-size: 10px; font-style: italic; }
 
         /* Popup */
         .leaflet-popup-content-wrapper {
@@ -301,6 +302,9 @@
 
         .stop-card.highlighted .stop-badge { background: var(--rust); }
 
+        .stop-badge.minor { background: var(--brown-light); font-size: 10px; font-style: italic; }
+        .stop-card.highlighted .stop-badge.minor { background: var(--rust); }
+
         .stop-body { flex: 1; min-width: 0; }
 
         .stop-tag {
@@ -398,7 +402,9 @@
         /* ── RESPONSIVE ──────────────────────────────────────────── */
 
         /* Sticky map — applies at all viewport sizes */
-        #map-section { position: sticky; top: 0; z-index: 400; }
+        /* will-change: transform pre-creates a GPU compositor layer, fixing the CSS
+           filter on .leaflet-tile-pane causing stale compositing when sticky kicks in */
+        #map-section { position: sticky; top: 0; z-index: 400; will-change: transform; }
 
         /* ── MINOR STOPS TOGGLE ──────────────────────────────────── */
 
@@ -823,15 +829,17 @@ function activate(i) {
 
 // ── Card builder ─────────────────────────────────────────────────
 function buildCards(stops, target) {
+    let mainIdx = 0, minorIdx = 0;
     stops.forEach((stop, i) => {
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `stop-${i}`;
+        const label = stop.minor ? String.fromCharCode(97 + minorIdx++) : String(++mainIdx);
         const mapsUrl = stop.placeSearch
             ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.placeSearch)}`
             : `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
         card.innerHTML = `
-            <div class="stop-badge">${i + 1}</div>
+            <div class="stop-badge${stop.minor ? ' minor' : ''}">${label}</div>
             <div class="stop-body">
                 <div class="stop-tags">
                     <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
@@ -851,10 +859,12 @@ function buildCards(stops, target) {
 
 // ── Marker builder ────────────────────────────────────────────────
 function addMarkers(stops) {
+    let mainIdx = 0, minorIdx = 0;
     stops.forEach((stop, i) => {
+        const label = stop.minor ? String.fromCharCode(97 + minorIdx++) : String(++mainIdx);
         const icon = L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin" id="pin-${i}">${i + 1}</div>`,
+            html: `<div class="marker-pin${stop.minor ? ' minor' : ''}" id="pin-${i}">${label}</div>`,
             iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
         });
         const marker = L.marker(stop.coords, { icon }).addTo(map);
@@ -984,7 +994,7 @@ document.getElementById('map-section').insertAdjacentElement('beforebegin', mapS
 
 new IntersectionObserver(([entry]) => {
     document.getElementById('map-section').classList.toggle('is-sticky', !entry.isIntersecting);
-    if (!entry.isIntersecting) map.invalidateSize();
+    if (!entry.isIntersecting) requestAnimationFrame(() => map.invalidateSize());
 }).observe(mapSentinel);
 
 // ── Init ──────────────────────────────────────────────────────────
