@@ -397,10 +397,29 @@
 
         /* ── RESPONSIVE ──────────────────────────────────────────── */
 
+        /* Sticky map — applies at all viewport sizes */
+        #map-section { position: sticky; top: 0; z-index: 400; }
+
+        /* ── MINOR STOPS TOGGLE ──────────────────────────────────── */
+
+        .minor-toggle-row { margin-bottom: 0.75rem; }
+
+        .minor-toggle-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.75rem;
+            color: var(--brown-light);
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: color 0.15s;
+        }
+        .minor-toggle-btn:hover { color: var(--brown-mid); }
+
         @media (max-width: 600px) {
             header { padding: 1.5rem 1.25rem 1.25rem; }
             #map { height: 260px; }
-            #map-section { position: sticky; top: 0; z-index: 400; }
             #map-legend { font-size: 0.62rem; gap: 0.9rem; padding: 0.4rem 0.9rem; }
             #map-legend .legend-item:last-child { display: none; }
             .stop-card { gap: 0.75rem; padding: 1rem; }
@@ -503,6 +522,9 @@
     <h2 class="section-title">Day-Trip Route &amp; Stops</h2>
     <p class="section-subtitle" id="route-subtitle"></p>
     <a id="gmaps-link" class="gmaps-link" href="#" target="_blank" rel="noopener">Open route in Google Maps ↗</a>
+    <div class="minor-toggle-row">
+        <button id="minor-toggle-btn" class="minor-toggle-btn" onclick="toggleMinorStops()">&#9655; Show waypoints</button>
+    </div>
     <div class="route-toggle">
         <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Loop Route</button>
         <button class="route-btn" id="btn-outback" onclick="switchRoute('outback')">Out &amp; Back</button>
@@ -556,6 +578,17 @@ const mainStops = [
         coords: [39.0748, -78.5970],
         description: "A small mountain town on the eastern edge of Hardy County, sitting right at the divide between West Virginia's ridges and the Shenandoah Valley. A few shops and a good stopping point for an early snack or coffee.",
         notes: "Tip: Last WV stop before crossing into Virginia. The drive east from here through the mountains on WV-55 is scenic."
+    },
+    {
+        name: "Cedar Creek & Belle Grove NHP",
+        location: "Frederick County, VA · US-11 / VA-55",
+        tag: "va",
+        tagLabel: "Virginia",
+        minor: true,
+        coords: [39.018, -78.291],
+        placeSearch: "Cedar Creek and Belle Grove National Historical Park",
+        description: "A National Historical Park preserving the 1864 Battle of Cedar Creek and Belle Grove Plantation. Right along the VA-55 corridor between WV and Front Royal — worth a slow drive-by or a short stop.",
+        notes: "Tip: Belle Grove Plantation is open seasonally. The battlefield auto tour is free and takes about 30 minutes."
     },
     {
         name: "Front Royal",
@@ -637,6 +670,16 @@ const mainStops = [
         description: "Where US-33 crosses the ridge — a clean exit point from Skyline Drive heading west toward Luray and the Shenandoah Valley. A natural bookend to the southern leg of the drive.",
         notes: "Tip: If time allows, keep going to Loft Mountain Overlook at Mile 79 — one of the most expansive panoramic views on the entire drive. Then double back here to exit."
     },
+    {
+        name: "Lebanon Church",
+        location: "Augusta County, VA · US-33",
+        tag: "va",
+        tagLabel: "Virginia",
+        minor: true,
+        coords: [38.437, -78.826],
+        description: "Small community on US-33 heading west from Swift Run Gap — the road follows the South Fork Shenandoah River through a scenic agricultural valley before meeting up with US-340 toward Luray.",
+        notes: "Tip: This stretch of US-33 west of Skyline Drive is genuinely pretty — take it slow."
+    },
     LURAY_FOOD_STOP,
     {
         name: "Smoke Hole Canyon",
@@ -683,17 +726,18 @@ const altStops = [
 const outbackStops = [
     mainStops[0],   // Lost City
     mainStops[1],   // Wardensville
+    mainStops[2],   // Cedar Creek & Belle Grove (minor)
     {               // Front Royal — modified notes for out-and-back
-        ...mainStops[2],
+        ...mainStops[3],
         notes: "Tip: Park entrance fee collected here — America the Beautiful Pass accepted. Gas up before entering. On the return: Front Royal is the best dinner stop before the 45-min drive back to Lost City."
     },
-    mainStops[3],   // Front Royal Food Stop
-    mainStops[4],   // Dickey Ridge
-    mainStops[5],   // Hogback
-    mainStops[6],   // Thornton Gap
-    mainStops[7],   // Crescent Rock
+    mainStops[4],   // Front Royal Food Stop
+    mainStops[5],   // Dickey Ridge
+    mainStops[6],   // Hogback
+    mainStops[7],   // Thornton Gap
+    mainStops[8],   // Crescent Rock
     {               // Big Meadows — turnaround
-        ...mainStops[8],
+        ...mainStops[9],
         turnaround: true,
         description: "The turnaround point for the out-and-back route, and the lunch stop. A wide highland meadow at 3,500 ft — deer almost always out in the open, huge sky, great light. The lodge has a full dining room; the Byrd Visitor Center wayside has quicker options.",
         notes: "Tip: After lunch, Dark Hollow Falls (1.4 mi round trip) is the perfect leg-stretcher before heading back north. Leave enough time — the drive back is just as good as the drive out, different light on the same views."
@@ -702,13 +746,18 @@ const outbackStops = [
 
 // ── Via Luray stop list (enter Skyline Drive at Thornton Gap) ─────
 const luraylStops = [
-    mainStops[0],    // Lost City
-    mainStops[1],    // Wardensville
+    mainStops[0],   // Lost City
+    { name: "Fulls Run", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.833, -78.983], description: "Small community along WV-259 heading south through Hardy County toward the Virginia border. A quiet stretch of valley road between ridges." },
+    { name: "Intersections", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.755, -78.996], description: "Crossroads community in southern Hardy County on the WV-259 corridor. The road continues south into Virginia through Bergton." },
+    { name: "Cootes Store", location: "Rockingham County, VA · VA-259", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.681, -78.932], description: "First Virginia community after crossing Shenandoah Mountain. The valley opens up here as you drop into the northern Shenandoah Valley." },
+    { name: "Broadway", location: "Rockingham County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.608, -78.800], description: "Small city on the Shenandoah Valley floor, US-11 corridor. Good quick stop for gas or a bite before heading north toward Luray." },
+    { name: "New Market", location: "Shenandoah County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.649, -78.673], description: "Turn east onto US-211 here to head toward Luray. New Market Battlefield State Park is on the south edge of town.", notes: "Tip: New Market is a good last-chance gas stop before the US-211 run to Luray." },
+    { name: "White House", location: "Page County, VA · US-211", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.676, -78.543], description: "Crossroads community just west of Luray on US-211. You're in Page County now — Luray is a few minutes ahead." },
     LURAY_FOOD_STOP, // Luray — food stop (departure)
-    mainStops[6],    // Thornton Gap (Mile 31.5 — Skyline Drive entry)
-    mainStops[7],    // Crescent Rock Overlook
+    mainStops[7],    // Thornton Gap (Mile 31.5 — Skyline Drive entry)
+    mainStops[8],    // Crescent Rock Overlook
     {                // Big Meadows — turnaround
-        ...mainStops[8],
+        ...mainStops[9],
         turnaround: true,
         description: "The turnaround point and lunch stop — a wide highland meadow at 3,500 ft with huge skies and deer almost always in the open. The lodge has a full dining room; the Byrd Visitor Center wayside has quick options. After lunch, Dark Hollow Falls is a fine leg-stretcher.",
         notes: "Tip: You'll pass back through Luray on the return — perfect dinner stop before the last leg home. Vic's Italian Kitchen or Elementary Burritos travel well if you'd rather take food to go."
@@ -756,6 +805,12 @@ let activePolyline = null;
 let activeMarkers  = [];
 let activePinEl    = null;
 let activeCardEl   = null;
+let showMinorStops = false;
+
+function getFilteredStops(key) {
+    const all = ROUTE_CONFIG[key].stops;
+    return showMinorStops ? all : all.filter(s => !s.minor);
+}
 
 function activate(i) {
     if (activePinEl)  activePinEl.classList.remove('active');
@@ -879,31 +934,18 @@ altDivider.addEventListener('click', () => {
         ' Alternative Day Trip · North Fork Mountain Road';
 });
 
-function switchRoute(key) {
-    if (key === activeRoute) return;
-    activeRoute = key;
-
-    // Buttons
-    document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-${key}`).classList.add('active');
-
-    // Subtitle + gmaps link
-    document.getElementById('route-subtitle').textContent = ROUTE_CONFIG[key].subtitle;
-    document.getElementById('gmaps-link').href = ROUTE_CONFIG[key].gmapsUrl;
-
-    // Clear cards + markers
+function rebuildRoute(key) {
     mainCardsEl.innerHTML = '';
     activeMarkers.forEach(m => map.removeLayer(m));
     activeMarkers = [];
     activePinEl = activeCardEl = null;
 
-    // Remove old polyline
     if (activePolyline) map.removeLayer(activePolyline);
 
-    // Build cards & markers for new route
     const cfg = ROUTE_CONFIG[key];
-    buildCards(cfg.stops, mainCardsEl);
-    addMarkers(cfg.stops);
+    const stops = getFilteredStops(key);
+    buildCards(stops, mainCardsEl);
+    addMarkers(stops);
 
     activePolyline = L.polyline(cfg.polylineCoords(), {
         color: '#b05535', weight: 2.5, opacity: 0.78, lineJoin: 'round', lineCap: 'round'
@@ -911,6 +953,39 @@ function switchRoute(key) {
 
     map.fitBounds(L.latLngBounds(cfg.stops.map(s => s.coords)), { padding: [36, 36] });
 }
+
+function switchRoute(key) {
+    if (key === activeRoute) return;
+    activeRoute = key;
+
+    document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-${key}`).classList.add('active');
+
+    document.getElementById('route-subtitle').textContent = ROUTE_CONFIG[key].subtitle;
+    document.getElementById('gmaps-link').href = ROUTE_CONFIG[key].gmapsUrl;
+
+    rebuildRoute(key);
+}
+
+function toggleMinorStops() {
+    showMinorStops = !showMinorStops;
+    const btn = document.getElementById('minor-toggle-btn');
+    btn.innerHTML = showMinorStops ? '&#9661; Hide waypoints' : '&#9655; Show waypoints';
+    rebuildRoute(activeRoute);
+}
+
+// ── Sticky map fix ────────────────────────────────────────────────
+// Leaflet doesn't update tile positions when its container moves via sticky CSS.
+// When the sentinel scrolls out of view, the map-section has pinned — call
+// invalidateSize() to force Leaflet to recalculate the container offset.
+const mapSentinel = document.createElement('div');
+mapSentinel.style.cssText = 'height:1px;pointer-events:none;';
+document.getElementById('map-section').insertAdjacentElement('beforebegin', mapSentinel);
+
+new IntersectionObserver(([entry]) => {
+    document.getElementById('map-section').classList.toggle('is-sticky', !entry.isIntersecting);
+    if (!entry.isIntersecting) map.invalidateSize();
+}).observe(mapSentinel);
 
 // ── Init ──────────────────────────────────────────────────────────
 switchRoute('loop');
