@@ -337,7 +337,6 @@
         .tag-va       { background: rgba(176,85,53,0.12);  color: var(--rust-dark); }
         .tag-skyline  { background: rgba(54,79,44,0.08);   color: var(--green-mid); }
         .tag-overlook { background: rgba(160,110,20,0.14); color: #7a5200; }
-        .tag-alt      { background: rgba(20,90,140,0.12);  color: #1a5a7a; }
 
         .photo-link {
             display: inline-block;
@@ -349,22 +348,6 @@
             transition: color 0.15s, border-color 0.15s;
         }
         .photo-link:hover { color: var(--rust-dark); border-bottom-color: var(--rust-dark); }
-
-        .route-divider {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin: 1.75rem 0 1.25rem;
-            color: var(--brown-light);
-        }
-        .route-divider::before,
-        .route-divider::after { content: ''; flex: 1; height: 1px; background: var(--parchment-border); }
-        .route-divider-label {
-            font-size: 0.62rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
 
         .stop-location {
             font-size: 0.67rem;
@@ -712,36 +695,6 @@ const mainStops = [
     }
 ];
 
-const altStops = [
-    {
-        name: "North Fork Mountain — South Access",
-        location: "Pendleton County, WV · Forest Road 79",
-        tag: "alt",
-        tagLabel: "N. Fork Mtn Drive",
-        coords: [38.641, -79.374],
-        description: "The south entry to Forest Road 79, one of the most rewarding drives in the Potomac Highlands. The road climbs steeply onto the ridge and stays there, with open views into Germany Valley on the west and the South Branch watershed on the east. Almost no traffic.",
-        notes: "Tip: Gravel road, passable for any passenger car in dry conditions — just go slow. Watch for backpackers; this is also a popular hiking route."
-    },
-    {
-        name: "Germany Valley Overlook",
-        location: "North Fork Mountain Ridge · FR-79",
-        tag: "alt",
-        tagLabel: "N. Fork Mtn Drive",
-        coords: [38.812, -79.284],
-        description: "Partway along the ridge, the trees open to reveal Germany Valley — a gorgeous enclosed limestone valley far below, with Spruce Mountain rising on the far side. It feels prehistoric. On a clear day the scale of it stops you in your tracks.",
-        notes: "Tip: This is the money view on the whole road. Give it time. Bring binoculars — the valley floor detail is incredible and deer are almost always visible."
-    },
-    {
-        name: "North Fork Mountain — North Exit",
-        location: "Grant County, WV · WV-55 near Cabins",
-        tag: "alt",
-        tagLabel: "N. Fork Mtn Drive",
-        coords: [38.963, -79.175],
-        description: "The north end of FR-79 drops back to WV-55 near the tiny community of Cabins. From here it's a beautiful 30-minute drive west back to Lost City through the North Fork and South Branch valleys.",
-        notes: "Tip: Stop in Moorefield on the way back if you need food or gas. The stretch of WV-55 west through the valleys is a great wind-down."
-    }
-];
-
 // ── Loop stop list (north section only: Front Royal → Thornton Gap → Luray) ──
 const loopStops = [
     mainStops[0],   // Lost City
@@ -867,10 +820,6 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-const altPolyline = L.polyline(altStops.map(s => s.coords), {
-    color: '#1a6b9a', weight: 2.5, opacity: 0.75, dashArray: '6, 8', lineJoin: 'round', lineCap: 'round'
-});
-
 // ── State ─────────────────────────────────────────────────────────
 let activeRoute    = null;
 let activePolyline = null;
@@ -958,57 +907,6 @@ function addMarkers(stops) {
 const container     = document.getElementById('stop-cards');
 const mainCardsEl   = document.createElement('div');
 container.appendChild(mainCardsEl);
-
-// Alt section (N. Fork Mountain) — appended after main cards, hidden by default
-const altDivider = document.createElement('div');
-altDivider.className = 'route-divider';
-altDivider.style.cursor = 'pointer';
-altDivider.title = 'Toggle alternative day trip';
-altDivider.innerHTML = '<span class="route-divider-label">&#9660; Show Alternative Day Trip · North Fork Mountain Road</span>';
-container.appendChild(altDivider);
-
-const altWrapper = document.createElement('div');
-altWrapper.id = 'alt-section';
-altWrapper.style.display = 'none';
-container.appendChild(altWrapper);
-
-// Build alt cards once (they don't change with route toggle)
-(function buildAlt() {
-    let altIdx = 0;
-    altStops.forEach(stop => {
-        const idx = altIdx++;
-        const card = document.createElement('div');
-        card.className = 'stop-card';
-        card.id = `alt-stop-${idx}`;
-        const mapsUrl = `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
-        card.innerHTML = `
-            <div class="stop-badge" style="background:#1a6b9a">${idx + 1}</div>
-            <div class="stop-body">
-                <div class="stop-tags"><span class="stop-tag tag-alt">${stop.tagLabel}</span></div>
-                <div class="stop-location">${stop.location}</div>
-                <div class="stop-name">${stop.name}</div>
-                <div class="stop-desc">${stop.description}</div>
-                ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
-                <a class="photo-link" href="${mapsUrl}" target="_blank" rel="noopener">📷 View photos on Google Maps</a>
-            </div>
-        `;
-        altWrapper.appendChild(card);
-        card.addEventListener('click', e => {
-            if (e.target.closest('.photo-link')) return;
-            map.setView(stop.coords, Math.max(map.getZoom(), 11), { animate: true, duration: 0.5 });
-        });
-    });
-})();
-
-let altVisible = false;
-altDivider.addEventListener('click', () => {
-    altVisible = !altVisible;
-    altWrapper.style.display = altVisible ? '' : 'none';
-    if (altVisible) altPolyline.addTo(map); else map.removeLayer(altPolyline);
-    altDivider.querySelector('.route-divider-label').innerHTML =
-        (altVisible ? '&#9650;' : '&#9660;') + ' ' + (altVisible ? 'Hide' : 'Show') +
-        ' Alternative Day Trip · North Fork Mountain Road';
-});
 
 function rebuildRoute(key) {
     mainCardsEl.innerHTML = '';
