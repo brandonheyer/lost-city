@@ -34,6 +34,7 @@
             background-color: var(--parchment);
             color: var(--text);
             line-height: 1.65;
+            overflow-x: hidden;
         }
 
         /* ── HEADER ──────────────────────────────────────────────── */
@@ -439,28 +440,32 @@
             .section-title { font-size: 1.45rem; }
             .section-subtitle { font-size: 0.82rem; }
             .photo-link { font-size: 0.78rem; }
+            .route-btn { padding: 0.5rem 0.45rem; font-size: 0.72rem; }
+            .route-toggle { gap: 0.3rem; }
         }
 
         /* ── ROUTE TOGGLE ────────────────────────────────────────── */
 
         .route-toggle {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.4rem;
             margin-bottom: 1.75rem;
+            flex-wrap: wrap;
         }
 
         .route-btn {
             flex: 1;
-            padding: 0.6rem 1rem;
+            padding: 0.6rem 0.75rem;
             border: 1.5px solid var(--parchment-border);
             border-radius: 4px;
             background: var(--cream);
             color: var(--brown-mid);
             font-family: 'Source Serif 4', serif;
             font-size: 0.82rem;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.02em;
             cursor: pointer;
             transition: background 0.18s, border-color 0.18s, color 0.18s;
+            white-space: nowrap;
         }
 
         .route-btn:hover { border-color: var(--green-light); color: var(--green); background: rgba(77,110,65,0.06); }
@@ -535,7 +540,8 @@
         <button id="minor-toggle-btn" class="minor-toggle-btn" onclick="toggleMinorStops()">&#9655; Show waypoints</button>
     </div>
     <div class="route-toggle">
-        <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Loop Route</button>
+        <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Loop</button>
+        <button class="route-btn" id="btn-outback" onclick="switchRoute('outback')">Out &amp; Back</button>
         <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full Skyline</button>
         <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
     </div>
@@ -731,6 +737,42 @@ const altStops = [
     }
 ];
 
+// ── Loop stop list (north section only: Front Royal → Thornton Gap → Luray) ──
+const loopStops = [
+    mainStops[0],   // Lost City
+    mainStops[1],   // Wardensville
+    mainStops[2],   // Cedar Creek & Belle Grove NHP (minor)
+    mainStops[3],   // Front Royal (Mile 0 entry)
+    mainStops[4],   // Front Royal Food Stop
+    mainStops[5],   // Dickey Ridge VC (Mile 4.6)
+    mainStops[6],   // Hogback Overlook (Mile 20.8)
+    {               // Thornton Gap — exit point on this loop
+        ...mainStops[7],
+        description: "Where US-211 crosses the Blue Ridge at Mile 31.5 — the exit point on the loop route, heading west toward Luray. The Panorama area here has some of the best views on the northern section of the drive.",
+        notes: "Tip: Head west on US-211 from here to Luray — about 25 minutes. Luray is an easy dinner stop before the last leg home to Lost City."
+    },
+    LURAY_FOOD_STOP,// Luray — dinner on the way back
+];
+
+// ── Out & Back stop list (Dickey Ridge first, heading south) ───────
+const outbackStops = [
+    mainStops[0],   // Lost City
+    mainStops[1],   // Wardensville
+    mainStops[2],   // Cedar Creek & Belle Grove NHP (minor)
+    mainStops[3],   // Front Royal (Mile 0 entry)
+    mainStops[4],   // Front Royal Food Stop
+    mainStops[5],   // Dickey Ridge VC (Mile 4.6 — first overlook from the north)
+    mainStops[6],   // Hogback Overlook (Mile 20.8)
+    mainStops[7],   // Thornton Gap (Mile 31.5)
+    mainStops[8],   // Crescent Rock Overlook (Mile 44.4)
+    {               // Big Meadows — turnaround
+        ...mainStops[9],
+        turnaround: true,
+        description: "The turnaround point and lunch stop — a wide highland meadow at 3,500 ft with huge skies and deer almost always out in the open. The lodge has a full dining room; the Byrd Visitor Center wayside has quicker options.",
+        notes: "Tip: After lunch, Dark Hollow Falls (1.4 mi round trip) is a perfect leg-stretcher before turning back north. The drive back through the same overlooks hits differently in the afternoon light."
+    }
+];
+
 // ── Full Skyline Drive (south → north) stop list ──────────────────
 const southNorthStops = [
     mainStops[0],   // Lost City
@@ -738,6 +780,22 @@ const southNorthStops = [
         ...mainStops[14],
         description: "A dramatic gorge cut by the South Branch of the Potomac River on the approach south through WV — sheer limestone cliffs rising above the water, a narrow road, and almost no one else around. A beautiful warm-up before the long Skyline Drive stretch ahead.",
         notes: "Tip: Smoke Hole Caverns is nearby if you want to go underground. The gorge road is narrow — take it slow, the views are worth it."
+    },
+    {               // Long Mountain General Store (minor)
+        name: "Long Mountain General Store",
+        location: "Pendleton County, WV · WV-28",
+        tag: "wv", tagLabel: "West Virginia",
+        minor: true,
+        coords: [38.718, -79.200],
+        description: "A country store along WV-28 heading south through Pendleton County — good for snacks, drinks, or a quick stretch before the long mountain drive ahead."
+    },
+    {               // Brandywine (minor)
+        name: "Brandywine",
+        location: "Pendleton County, WV · US-33",
+        tag: "wv", tagLabel: "West Virginia",
+        minor: true,
+        coords: [38.637, -79.219],
+        description: "Small town on US-33 in the heart of Pendleton County. The South Branch Potomac River runs right through here — a scenic valley as the road begins turning east toward Virginia and the Blue Ridge."
     },
     {               // Lebanon Church — outbound approach east on US-33
         ...mainStops[12],
@@ -787,24 +845,31 @@ const luraylStops = [
 // ── Route config ─────────────────────────────────────────────────
 const ROUTE_CONFIG = {
     loop: {
-        stops: mainStops,
-        subtitle: 'Starting and ending near Lost City, WV. Head east over the mountains, pick up Skyline Drive at Mile 0, drive south through the park, then loop back through the Shenandoah Valley.',
-        stats: '≈ 230 mi · 7–9 hrs with stops · full day',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/39.0748,-78.5970/38.9162,-78.1939/38.8892,-78.2089/38.7845,-78.2382/38.5293,-78.4354/38.4865,-78.4196/38.3809,-78.5248/38.6629,-78.4573/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
-        polylineCoords() { const c = mainStops.map(s => s.coords); c.push(c[0]); return c; }
+        stops: loopStops,
+        subtitle: 'Enter Skyline Drive at Front Royal (Mile 0), drive the northern stretch to Thornton Gap (Mile 31.5), exit west to Luray, and return to Lost City. A shorter, well-paced loop covering the best of the northern drive.',
+        stats: '≈ 175 mi · 5–7 hrs with stops',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Thornton+Gap,+VA/Luray,+VA/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
+        polylineCoords() { const c = loopStops.map(s => s.coords); c.push(c[0]); return c; }
+    },
+    outback: {
+        stops: outbackStops,
+        subtitle: 'Enter at Front Royal (Mile 0) and start at Dickey Ridge — the first overlook from the north. Drive south through all the major overlooks to Big Meadows for lunch, then return north the same way.',
+        stats: '≈ 205 mi · 7–8 hrs with stops',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Big+Meadows+Shenandoah+National+Park',
+        polylineCoords() { const c = outbackStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
     },
     southnorth: {
         stops: southNorthStops,
         subtitle: 'The complete Skyline Drive, south to north. Approach via Smoke Hole Canyon, enter at Swift Run Gap (Mile 65.5), and drive all 65 miles of ridge road northward to Front Royal. Return west via Wardensville.',
         stats: '≈ 245 mi · 8–10 hrs with stops · full day',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/38.8170,-79.1833/38.3809,-78.5248/38.5293,-78.4354/38.7845,-78.2382/38.9162,-78.1939/39.0748,-78.5970/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Swift+Run+Gap+Shenandoah/Big+Meadows+Shenandoah+National+Park/Front+Royal,+VA/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = southNorthStops.map(s => s.coords); c.push(c[0]); return c; }
     },
     luray: {
         stops: luraylStops,
-        subtitle: 'Different entry point — drive to Luray first, enter Skyline Drive at Thornton Gap (Mile 31.5), lunch at Big Meadows, return the same way. Skips the first 31 miles of the drive but saves approach time and keeps Luray as your food stop on both ends.',
+        subtitle: 'Drive to Luray first, enter Skyline Drive at Thornton Gap (Mile 31.5), lunch at Big Meadows, return the same way. Skips the first 31 miles of the drive but saves approach time and keeps Luray as your food stop on both ends.',
         stats: '≈ 195 mi · 6–8 hrs with stops',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/38.6629,-78.4573/38.6629,-78.3253/38.5621,-78.3921/38.5293,-78.4354/38.6629,-78.4573/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Luray,+VA/Big+Meadows+Shenandoah+National+Park/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = luraylStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
     }
 };
@@ -1016,7 +1081,7 @@ mapSectionEl.insertAdjacentElement('afterend', mapPinPlaceholder);
 let mapIsPinned = false;
 
 function syncMapPin() {
-    // Use document-space scrollY so mobile Chrome's address-bar collapse doesn't skew the trigger
+    // Use document-space scrollY — stable across mobile Chrome address-bar collapse
     const shouldPin = window.scrollY >= headerEl.offsetHeight;
     if (shouldPin === mapIsPinned) return;
     mapIsPinned = shouldPin;
@@ -1024,13 +1089,16 @@ function syncMapPin() {
         mapPinPlaceholder.style.height = mapSectionEl.offsetHeight + 'px';
         mapPinPlaceholder.style.display = 'block';
         mapSectionEl.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:400;';
-        requestAnimationFrame(() => {
-            map.invalidateSize();
-            map.setView(map.getCenter(), map.getZoom(), {animate: false});
-        });
+        // Force a synchronous reflow so the browser updates the fixed element's
+        // bounding rect BEFORE Leaflet reads it inside invalidateSize()
+        void mapSectionEl.getBoundingClientRect();
+        map.invalidateSize({pan: false});
+        map.setView(map.getCenter(), map.getZoom(), {animate: false});
     } else {
         mapSectionEl.style.cssText = '';
         mapPinPlaceholder.style.display = 'none';
+        void mapSectionEl.getBoundingClientRect();
+        map.invalidateSize({pan: false});
     }
 }
 
