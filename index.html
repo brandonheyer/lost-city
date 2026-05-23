@@ -27,14 +27,13 @@
             --text:          #352a1c;
         }
 
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; overflow-x: hidden; }
 
         body {
             font-family: 'Source Serif 4', Georgia, serif;
             background-color: var(--parchment);
             color: var(--text);
             line-height: 1.65;
-            overflow-x: hidden;
         }
 
         /* ── HEADER ──────────────────────────────────────────────── */
@@ -123,6 +122,13 @@
             border-top: 3px solid var(--green);
             border-bottom: 3px solid var(--green);
             background: var(--parchment-mid);
+        }
+
+        /* Map section sticks at top when scrolled past header */
+        #map-section {
+            position: sticky;
+            top: 0;
+            z-index: 400;
         }
 
         /* Give the OSM tiles a warm, vintage topo-map feel */
@@ -540,8 +546,7 @@
         <button id="minor-toggle-btn" class="minor-toggle-btn" onclick="toggleMinorStops()">&#9655; Show waypoints</button>
     </div>
     <div class="route-toggle">
-        <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Loop</button>
-        <button class="route-btn" id="btn-outback" onclick="switchRoute('outback')">Out &amp; Back</button>
+        <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Northern Skyline</button>
         <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full Skyline</button>
         <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
     </div>
@@ -754,25 +759,6 @@ const loopStops = [
     LURAY_FOOD_STOP,// Luray — dinner on the way back
 ];
 
-// ── Out & Back stop list (Dickey Ridge first, heading south) ───────
-const outbackStops = [
-    mainStops[0],   // Lost City
-    mainStops[1],   // Wardensville
-    mainStops[2],   // Cedar Creek & Belle Grove NHP (minor)
-    mainStops[3],   // Front Royal (Mile 0 entry)
-    mainStops[4],   // Front Royal Food Stop
-    mainStops[5],   // Dickey Ridge VC (Mile 4.6 — first overlook from the north)
-    mainStops[6],   // Hogback Overlook (Mile 20.8)
-    mainStops[7],   // Thornton Gap (Mile 31.5)
-    mainStops[8],   // Crescent Rock Overlook (Mile 44.4)
-    {               // Big Meadows — turnaround
-        ...mainStops[9],
-        turnaround: true,
-        description: "The turnaround point and lunch stop — a wide highland meadow at 3,500 ft with huge skies and deer almost always out in the open. The lodge has a full dining room; the Byrd Visitor Center wayside has quicker options.",
-        notes: "Tip: After lunch, Dark Hollow Falls (1.4 mi round trip) is a perfect leg-stretcher before turning back north. The drive back through the same overlooks hits differently in the afternoon light."
-    }
-];
-
 // ── Full Skyline Drive (south → north) stop list ──────────────────
 const southNorthStops = [
     mainStops[0],   // Lost City
@@ -832,8 +818,13 @@ const luraylStops = [
     { name: "New Market", location: "Shenandoah County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.649, -78.673], description: "Turn east onto US-211 here to head toward Luray. New Market Battlefield State Park is on the south edge of town.", notes: "Tip: New Market is a good last-chance gas stop before the US-211 run to Luray." },
     { name: "White House", location: "Page County, VA · US-211", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.676, -78.543], description: "Crossroads community just west of Luray on US-211. You're in Page County now — Luray is a few minutes ahead." },
     LURAY_FOOD_STOP, // Luray — food stop (departure)
-    mainStops[7],    // Thornton Gap (Mile 31.5 — Skyline Drive entry)
-    mainStops[8],    // Crescent Rock Overlook
+    {                // Thornton Gap — entry; head north to Hogback first
+        ...mainStops[7],
+        description: "Where US-211 crosses the Blue Ridge at Mile 31.5 — the entry point for this route. From here, head north a few miles to Hogback Overlook first, then turn around and drive south through Crescent Rock to Big Meadows for lunch.",
+        notes: "Tip: The Panorama area right at Thornton Gap has great westward views down the Luray Valley toward Massanutten Mountain — worth a slow pass even before heading north."
+    },
+    mainStops[6],    // Hogback Overlook (Mile 20.8 — first overlook heading north)
+    mainStops[8],    // Crescent Rock Overlook (Mile 44.4 — heading south)
     {                // Big Meadows — turnaround
         ...mainStops[9],
         turnaround: true,
@@ -851,13 +842,6 @@ const ROUTE_CONFIG = {
         gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Thornton+Gap,+VA/Luray,+VA/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = loopStops.map(s => s.coords); c.push(c[0]); return c; }
     },
-    outback: {
-        stops: outbackStops,
-        subtitle: 'Enter at Front Royal (Mile 0) and start at Dickey Ridge — the first overlook from the north. Drive south through all the major overlooks to Big Meadows for lunch, then return north the same way.',
-        stats: '≈ 205 mi · 7–8 hrs with stops',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Big+Meadows+Shenandoah+National+Park',
-        polylineCoords() { const c = outbackStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
-    },
     southnorth: {
         stops: southNorthStops,
         subtitle: 'The complete Skyline Drive, south to north. Approach via Smoke Hole Canyon, enter at Swift Run Gap (Mile 65.5), and drive all 65 miles of ridge road northward to Front Royal. Return west via Wardensville.',
@@ -867,7 +851,7 @@ const ROUTE_CONFIG = {
     },
     luray: {
         stops: luraylStops,
-        subtitle: 'Drive to Luray first, enter Skyline Drive at Thornton Gap (Mile 31.5), lunch at Big Meadows, return the same way. Skips the first 31 miles of the drive but saves approach time and keeps Luray as your food stop on both ends.',
+        subtitle: 'Drive to Luray, enter at Thornton Gap (Mile 31.5), then head north first to Hogback Overlook before turning south to Crescent Rock and Big Meadows for lunch. Out and back — same road, different direction on the return.',
         stats: '≈ 195 mi · 6–8 hrs with stops',
         gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Luray,+VA/Big+Meadows+Shenandoah+National+Park/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = luraylStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
@@ -1067,48 +1051,38 @@ function toggleMinorStops() {
     rebuildRoute(activeRoute);
 }
 
-// ── Map pinning (JS-controlled position:fixed) ───────────────────
-// CSS position:sticky misfires on this device — switching to explicit JS pinning
-// so we control the exact frame the map transitions to fixed and can call
-// invalidateSize() + setView() before the next paint.
-const mapSectionEl  = document.getElementById('map-section');
-const headerEl      = document.querySelector('header');
+// ── Map sticky alignment (CSS handles the pinning; JS fixes Leaflet) ──
+// position:sticky is declared in CSS. The sentinel div sits just before
+// #map-section: when it leaves the viewport the map is pinned at top:0.
+// We use that moment to call invalidateSize+setView so Leaflet recalculates
+// tile positions relative to the new on-screen location.
+const mapSectionEl = document.getElementById('map-section');
 
-const mapPinPlaceholder = document.createElement('div');
-mapPinPlaceholder.style.display = 'none';
-mapSectionEl.insertAdjacentElement('afterend', mapPinPlaceholder);
+const stickySentinel = document.createElement('div');
+stickySentinel.style.cssText = 'height:0;overflow:hidden;pointer-events:none;';
+mapSectionEl.insertAdjacentElement('beforebegin', stickySentinel);
 
-let mapIsPinned = false;
+let mapIsStuck = false;
 
-function syncMapPin() {
-    // Use document-space scrollY — stable across mobile Chrome address-bar collapse
-    const shouldPin = window.scrollY >= headerEl.offsetHeight;
-    if (shouldPin === mapIsPinned) return;
-    mapIsPinned = shouldPin;
-    if (shouldPin) {
-        mapPinPlaceholder.style.height = mapSectionEl.offsetHeight + 'px';
-        mapPinPlaceholder.style.display = 'block';
-        mapSectionEl.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:400;';
-        // Force a synchronous reflow so the browser updates the fixed element's
-        // bounding rect BEFORE Leaflet reads it inside invalidateSize()
-        void mapSectionEl.getBoundingClientRect();
-        map.invalidateSize({pan: false});
-        map.setView(map.getCenter(), map.getZoom(), {animate: false});
-    } else {
-        mapSectionEl.style.cssText = '';
-        mapPinPlaceholder.style.display = 'none';
-        void mapSectionEl.getBoundingClientRect();
-        map.invalidateSize({pan: false});
-    }
+function fixLeafletAlignment() {
+    void mapSectionEl.getBoundingClientRect(); // force sync layout flush
+    map.invalidateSize({pan: false});
+    map.setView(map.getCenter(), map.getZoom(), {animate: false});
 }
 
-window.addEventListener('scroll', syncMapPin, {passive: true});
-// visualViewport fires on mobile Chrome when the address bar collapses/expands
+new IntersectionObserver(([entry]) => {
+    const stuck = !entry.isIntersecting;
+    if (stuck === mapIsStuck) return;
+    mapIsStuck = stuck;
+    if (stuck) fixLeafletAlignment();
+}, {threshold: 0}).observe(stickySentinel);
+
+// Also fix when the visual viewport resizes (mobile address bar collapse)
 if (window.visualViewport) {
-    window.visualViewport.addEventListener('scroll', syncMapPin);
-    window.visualViewport.addEventListener('resize', syncMapPin);
+    window.visualViewport.addEventListener('resize', () => {
+        if (mapIsStuck) fixLeafletAlignment();
+    });
 }
-syncMapPin(); // handle pre-scrolled state on page load
 
 // ── Init ──────────────────────────────────────────────────────────
 switchRoute('loop');
