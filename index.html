@@ -114,6 +114,14 @@
             letter-spacing: 0.04em;
         }
 
+        .header-pups {
+            font-size: 0.72rem;
+            color: rgba(244,238,216,0.35);
+            font-style: italic;
+            letter-spacing: 0.06em;
+            margin-top: 0.25rem;
+        }
+
         /* ── MAP ─────────────────────────────────────────────────── */
 
         #map {
@@ -170,6 +178,20 @@
         .marker-pin:hover  { transform: scale(1.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
         .marker-pin.active { background: var(--rust-dark); transform: scale(1.2); }
         .marker-pin.minor  { background: var(--brown-light); font-size: 10px; font-style: italic; }
+
+        /* Base camp: green circle */
+        .marker-pin.base-pin { background: var(--green); }
+        .marker-pin.base-pin.active { background: var(--green-mid); }
+
+        /* Food stop: rounded square, amber */
+        .marker-pin.food-pin { border-radius: 6px; background: #8a6000; }
+        .marker-pin.food-pin.active { background: #5e4000; }
+
+        /* Overlook: diamond (rotated square) */
+        .marker-pin.overlook-pin { border-radius: 5px; transform: rotate(45deg); }
+        .marker-pin.overlook-pin .pin-label { display: inline-block; transform: rotate(-45deg); }
+        .marker-pin.overlook-pin:hover { transform: rotate(45deg) scale(1.15); }
+        .marker-pin.overlook-pin.active { background: var(--rust-dark); transform: rotate(45deg) scale(1.2); }
 
         /* Popup */
         .leaflet-popup-content-wrapper {
@@ -232,6 +254,25 @@
             border-radius: 2px;
             flex-shrink: 0;
             opacity: 0.8;
+        }
+
+        .legend-diamond {
+            width: 10px; height: 10px;
+            border-radius: 2px;
+            background: var(--rust);
+            border: 1.5px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+            transform: rotate(45deg);
+        }
+
+        .legend-square {
+            width: 10px; height: 10px;
+            border-radius: 2px;
+            background: #8a6000;
+            border: 1.5px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            flex-shrink: 0;
         }
 
         /* ── ITINERARY ───────────────────────────────────────────── */
@@ -404,8 +445,6 @@
 
         /* ── MINOR STOPS TOGGLE ──────────────────────────────────── */
 
-        .minor-toggle-row { margin-bottom: 0.75rem; }
-
         .minor-toggle-btn {
             background: none;
             border: none;
@@ -423,8 +462,7 @@
             header { padding: 1.5rem 1.25rem 1.25rem; }
             #map { height: 260px; }
             #map-section.is-sticky #map { height: 182px; }
-            #map-legend { font-size: 0.62rem; gap: 0.9rem; padding: 0.4rem 0.9rem; }
-            #map-legend .legend-item:last-child { display: none; }
+            #map-legend { font-size: 0.62rem; gap: 0.75rem; padding: 0.4rem 0.9rem; }
             .stop-card { gap: 0.75rem; padding: 1rem; }
             .stop-name { font-size: 1rem; }
             .stop-desc { font-size: 0.84rem; }
@@ -502,6 +540,7 @@
             <div class="header-rule-line"></div>
         </div>
         <div class="header-meta">Brandon &amp; Amanda</div>
+        <div class="header-pups">&amp; Murphy, Millie &amp; Morty</div>
     </div>
 </header>
 
@@ -514,12 +553,18 @@
         <span>Stop</span>
     </div>
     <div class="legend-item">
+        <div class="legend-diamond"></div>
+        <span>Overlook</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-square"></div>
+        <span>Food</span>
+    </div>
+    <div class="legend-item">
         <div class="legend-line"></div>
-        <span>Day-trip route</span>
+        <span>Route</span>
     </div>
-    <div class="legend-item" style="margin-left:auto; color: var(--brown-light); text-transform: none; letter-spacing: 0; font-style: italic;">
-        Click a marker or card to explore
-    </div>
+    <button id="minor-toggle-btn" class="minor-toggle-btn" onclick="toggleMinorStops()" style="margin-left:auto">&#9655; Show waypoints</button>
 </div>
 
 <div class="route-toggle">
@@ -535,9 +580,6 @@
     <p class="section-subtitle" id="route-subtitle"></p>
     <div id="route-stats" class="route-stats"></div>
     <a id="gmaps-link" class="gmaps-link" href="#" target="_blank" rel="noopener">Open route in Google Maps ↗</a>
-    <div class="minor-toggle-row">
-        <button id="minor-toggle-btn" class="minor-toggle-btn" onclick="toggleMinorStops()">&#9655; Show waypoints</button>
-    </div>
     <div id="stop-cards"></div>
 </section>
 
@@ -727,6 +769,13 @@ const loopStops = [
         notes: "Tip: Head west on US-211 from here to Luray — about 25 minutes. Luray is an easy dinner stop before the last leg home to Lost City."
     },
     LURAY_FOOD_STOP,// Luray — dinner on the way back
+    // Return leg: Luray → Lost City via WV-259 (Via Luray waypoints in reverse)
+    { name: "White House", location: "Page County, VA · US-211", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.676, -78.543], description: "Crossroads just west of Luray on US-211 — heading west toward New Market on the drive home." },
+    { name: "New Market", location: "Shenandoah County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.649, -78.673], description: "Head south on US-11 briefly, then pick up VA-259 west toward Broadway and the mountain crossing back into WV." },
+    { name: "Broadway", location: "Rockingham County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.608, -78.800], description: "Last good gas and supplies stop on the valley floor before the climb back over Shenandoah Mountain toward Lost City." },
+    { name: "Cootes Store", location: "Rockingham County, VA · VA-259", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.681, -78.932], description: "Heading northwest on VA-259, crossing back over Shenandoah Mountain into Hardy County, WV." },
+    { name: "Intersections", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.755, -78.996], description: "Back in WV now — WV-259 north through the valley toward Mathias and Lost City." },
+    { name: "Fulls Run", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.833, -78.983], description: "Last community before the final stretch home on WV-259 — almost back to Lost City." },
 ];
 
 // ── Full Skyline Drive (south → north) stop list ──────────────────
@@ -894,9 +943,16 @@ function addMarkers(stops) {
     let mainIdx = 0, minorIdx = 0;
     stops.forEach((stop, i) => {
         const label = stop.minor ? String.fromCharCode(97 + minorIdx++) : String(++mainIdx);
+        const shapeClass = stop.tag === 'overlook' ? ' overlook-pin'
+                         : stop.tag === 'food'     ? ' food-pin'
+                         : stop.tag === 'base'     ? ' base-pin'
+                         : '';
+        const labelHtml  = stop.tag === 'overlook'
+                         ? `<span class="pin-label">${label}</span>`
+                         : label;
         const icon = L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin${stop.minor ? ' minor' : ''}" id="pin-${i}">${label}</div>`,
+            html: `<div class="marker-pin${stop.minor ? ' minor' : ''}${shapeClass}" id="pin-${i}">${labelHtml}</div>`,
             iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
         });
         const marker = L.marker(stop.coords, { icon }).addTo(map);
