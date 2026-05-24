@@ -122,6 +122,7 @@
             border-top: 3px solid var(--green);
             border-bottom: 3px solid var(--green);
             background: var(--parchment-mid);
+            transition: height 0.25s ease;
         }
 
         /* Map section sticks at top when scrolled past header */
@@ -130,6 +131,9 @@
             top: 0;
             z-index: 400;
         }
+
+        /* Shrink map to 70% height when pinned */
+        #map-section.is-sticky #map { height: 336px; }
 
         /* Give the OSM tiles a warm, vintage topo-map feel */
         .leaflet-tile-pane {
@@ -418,6 +422,7 @@
         @media (max-width: 600px) {
             header { padding: 1.5rem 1.25rem 1.25rem; }
             #map { height: 260px; }
+            #map-section.is-sticky #map { height: 182px; }
             #map-legend { font-size: 0.62rem; gap: 0.9rem; padding: 0.4rem 0.9rem; }
             #map-legend .legend-item:last-child { display: none; }
             .stop-card { gap: 0.75rem; padding: 1rem; }
@@ -429,28 +434,27 @@
             .section-title { font-size: 1.45rem; }
             .section-subtitle { font-size: 0.82rem; }
             .photo-link { font-size: 0.78rem; }
-            .route-btn { padding: 0.5rem 0.45rem; font-size: 0.72rem; }
-            .route-toggle { gap: 0.3rem; }
         }
 
         /* ── ROUTE TOGGLE ────────────────────────────────────────── */
 
         .route-toggle {
             display: flex;
-            gap: 0.4rem;
-            margin-bottom: 1.75rem;
-            flex-wrap: wrap;
+            gap: 0.35rem;
+            padding: 0.45rem 0.75rem;
+            background: var(--parchment-mid);
+            border-bottom: 1px solid var(--parchment-border);
         }
 
         .route-btn {
             flex: 1;
-            padding: 0.6rem 0.75rem;
+            padding: 0.28rem 0.5rem;
             border: 1.5px solid var(--parchment-border);
-            border-radius: 4px;
-            background: var(--cream);
+            border-radius: 3px;
+            background: transparent;
             color: var(--brown-mid);
             font-family: 'Source Serif 4', serif;
-            font-size: 0.82rem;
+            font-size: 0.72rem;
             letter-spacing: 0.02em;
             cursor: pointer;
             transition: background 0.18s, border-color 0.18s, color 0.18s;
@@ -517,6 +521,12 @@
         Click a marker or card to explore
     </div>
 </div>
+
+<div class="route-toggle">
+    <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Northern Skyline</button>
+    <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full Skyline</button>
+    <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
+</div>
 </div>
 
 <section id="itinerary">
@@ -527,11 +537,6 @@
     <a id="gmaps-link" class="gmaps-link" href="#" target="_blank" rel="noopener">Open route in Google Maps ↗</a>
     <div class="minor-toggle-row">
         <button id="minor-toggle-btn" class="minor-toggle-btn" onclick="toggleMinorStops()">&#9655; Show waypoints</button>
-    </div>
-    <div class="route-toggle">
-        <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Northern Skyline</button>
-        <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full Skyline</button>
-        <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
     </div>
     <div id="stop-cards"></div>
 </section>
@@ -972,7 +977,9 @@ new IntersectionObserver(([entry]) => {
     const stuck = !entry.isIntersecting;
     if (stuck === mapIsStuck) return;
     mapIsStuck = stuck;
-    if (stuck) fixLeafletAlignment();
+    mapSectionEl.classList.toggle('is-sticky', stuck);
+    // Fix Leaflet after the CSS height transition finishes (0.25s)
+    setTimeout(fixLeafletAlignment, 260);
 }, {threshold: 0}).observe(stickySentinel);
 
 // Also fix when the visual viewport resizes (mobile address bar collapse)
