@@ -989,8 +989,14 @@ new IntersectionObserver(([entry]) => {
     const stuck = !entry.isIntersecting;
     if (stuck === mapIsStuck) return;
     mapIsStuck = stuck;
+    const savedCenter = map.getCenter();
+    const savedZoom = map.getZoom();
     mapSectionEl.classList.toggle('is-sticky', stuck);
-    setTimeout(fixLeafletAlignment, 260);
+    setTimeout(() => {
+        void mapSectionEl.getBoundingClientRect();
+        map.invalidateSize({pan: false});
+        map.setView(savedCenter, savedZoom, {animate: false});
+    }, 260);
 }, {threshold: 0}).observe(stickySentinel);
 
 // Also fix when the visual viewport resizes (mobile address bar collapse)
