@@ -122,7 +122,6 @@
             border-top: 3px solid var(--green);
             border-bottom: 3px solid var(--green);
             background: var(--parchment-mid);
-            transition: height 0.25s ease;
         }
 
         /* Map section sticks at top when scrolled past header */
@@ -703,7 +702,19 @@ const mainStops = [
 // ── Loop stop list (north section only: Front Royal → Thornton Gap → Luray) ──
 const loopStops = [
     mainStops[0],   // Lost City
+    {   name: "Baker", location: "Hardy County, WV · WV-55 / US-220",
+        tag: "wv", tagLabel: "West Virginia", minor: true, coords: [39.027, -78.764],
+        description: "Small Hardy County crossroads at the junction of WV-55 and US-220. A good last chance for gas or a quick stop before heading east toward Wardensville and into Virginia."
+    },
     mainStops[1],   // Wardensville
+    {   name: "Toms Brook", location: "Shenandoah County, VA · US-11",
+        tag: "va", tagLabel: "Virginia", minor: true, coords: [38.957, -78.446],
+        description: "Small community where the WV-55 / VA-55 corridor meets the Shenandoah Valley floor. You're well into Virginia now — the Blue Ridge runs along the eastern horizon and Front Royal is about 30 miles north."
+    },
+    {   name: "Strasburg", location: "Shenandoah County, VA · US-11",
+        tag: "va", tagLabel: "Virginia", minor: true, coords: [38.985, -78.358],
+        description: "One of the northern Valley's older towns, sitting on the original Valley Turnpike corridor (US-11). Head north from here toward US-340 and Front Royal. Massanutten Mountain rises dramatically to the east."
+    },
     mainStops[2],   // Cedar Creek & Belle Grove NHP (minor)
     mainStops[3],   // Front Royal (Mile 0 entry)
     mainStops[4],   // Front Royal Food Stop
@@ -978,8 +989,7 @@ new IntersectionObserver(([entry]) => {
     if (stuck === mapIsStuck) return;
     mapIsStuck = stuck;
     mapSectionEl.classList.toggle('is-sticky', stuck);
-    // Fix Leaflet after the CSS height transition finishes (0.25s)
-    setTimeout(fixLeafletAlignment, 260);
+    fixLeafletAlignment();
 }, {threshold: 0}).observe(stickySentinel);
 
 // Also fix when the visual viewport resizes (mobile address bar collapse)
