@@ -474,6 +474,42 @@
             .photo-link { font-size: 0.78rem; }
         }
 
+        /* ── WIDE LAYOUT (map left, itinerary right) ────────────── */
+
+        @media (min-width: 900px) {
+            #content-row {
+                display: flex;
+                align-items: flex-start;
+            }
+
+            #map-section {
+                width: 46%;
+                flex-shrink: 0;
+                position: sticky;
+                top: 0;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+
+            #map {
+                flex: 1 1 0;
+                min-height: 0;
+                height: auto;
+            }
+
+            /* Cancel the sticky-shrink on wide screens — map already fills column */
+            #map-section.is-sticky #map { height: auto; }
+
+            #itinerary {
+                flex: 1;
+                max-width: none;
+                margin: 0;
+                padding: 2.5rem 2.5rem 4rem;
+                min-width: 0;
+            }
+        }
+
         /* ── ROUTE TOGGLE ────────────────────────────────────────── */
 
         .route-toggle {
@@ -544,6 +580,7 @@
     </div>
 </header>
 
+<div id="content-row">
 <div id="map-section">
 <div id="map"></div>
 
@@ -582,6 +619,7 @@
     <a id="gmaps-link" class="gmaps-link" href="#" target="_blank" rel="noopener">Open route in Google Maps ↗</a>
     <div id="stop-cards"></div>
 </section>
+</div><!-- #content-row -->
 
 <footer>
     Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
