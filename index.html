@@ -193,6 +193,10 @@
         .marker-pin.overlook-pin:hover { transform: rotate(45deg) scale(1.15); }
         .marker-pin.overlook-pin.active { background: var(--rust-dark); transform: rotate(45deg) scale(1.2); }
 
+        /* Optional overlook: same diamond, muted color */
+        .marker-pin.optional-pin { background: #c0866b; }
+        .marker-pin.optional-pin.active { background: #9a6248; }
+
         /* Popup */
         .leaflet-popup-content-wrapper {
             background: var(--parchment) !important;
@@ -361,8 +365,11 @@
 
         .stop-card.highlighted .stop-badge { background: var(--rust); }
 
-        .stop-badge.minor { background: var(--brown-light); font-size: 10px; font-style: italic; }
+        .stop-badge.minor    { background: var(--brown-light); font-size: 10px; font-style: italic; }
         .stop-card.highlighted .stop-badge.minor { background: var(--rust); }
+
+        .stop-badge.optional { background: rgba(176,85,53,0.5); font-size: 10px; font-style: italic; }
+        .stop-card.highlighted .stop-badge.optional { background: var(--rust); }
 
         .stop-body { flex: 1; min-width: 0; }
 
@@ -594,6 +601,10 @@
         <span>Overlook</span>
     </div>
     <div class="legend-item">
+        <div class="legend-diamond" style="background:#c0866b;"></div>
+        <span>Optional</span>
+    </div>
+    <div class="legend-item">
         <div class="legend-square"></div>
         <span>Food</span>
     </div>
@@ -605,9 +616,10 @@
 </div>
 
 <div class="route-toggle">
-    <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">Northern Skyline</button>
-    <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full Skyline</button>
+    <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">N. Skyline</button>
+    <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full S→N</button>
     <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
+    <button class="route-btn" id="btn-overlook" onclick="switchRoute('overlook')">Overlook Drive</button>
 </div>
 </div>
 
@@ -646,6 +658,71 @@ const LURAY_FOOD_STOP = {
     placeSearch: "Luray Virginia restaurants",
     description: "Solid small city with good dinner options before the drive back to Lost City: <strong>Gathering Grounds</strong> (café, all-day breakfast), <strong>Vic's Italian Kitchen</strong> (pizza & pasta), <strong>Elementary Burritos</strong> (fast & reliable), <strong>Brookside Cabins restaurant</strong> (sit-down).",
     notes: "Tip: Luray is 45 minutes from Lost City — pizza and burritos travel fine; soup does not."
+};
+
+// ── Shared overlook stops (optional unless noted) ─────────────────
+const RANGE_VIEW_OL = {
+    name: "Range View Overlook", location: "Skyline Drive · Mile 10.4",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.853, -78.218], placeSearch: "Range View Overlook Shenandoah National Park",
+    description: "One of the earliest rewards heading south from Front Royal — a wide panorama sweeping across the Shenandoah Valley to the Alleghenies. The Blue Ridge ridge line runs north and south in both directions from this perch.",
+    notes: "Tip: The Compton Peak trail starts nearby and leads to exposed columnar basalt — 1.2 mi one-way."
+};
+const RATTLESNAKE_PT_OL = {
+    name: "Rattlesnake Point Overlook", location: "Skyline Drive · Mile 22.2",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.770, -78.249], placeSearch: "Rattlesnake Point Overlook Shenandoah",
+    description: "Southwest-facing views toward the Shenandoah Valley floor and Massanutten Mountain. A quieter pull-off between Hogback and Thornton Gap — often less crowded than either.",
+    notes: "Tip: Worth a 5-minute stop on a clear day. The geometry of Massanutten shows well from here."
+};
+const PASS_MTN_OL = {
+    name: "Pass Mountain Overlook", location: "Skyline Drive · Mile 24.0",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.749, -78.264], placeSearch: "Pass Mountain Overlook Shenandoah",
+    description: "Open west-facing views toward Luray and the Shenandoah Valley, with Massanutten Mountain across the valley. A quiet pull-off on the final approach to Thornton Gap.",
+    notes: "Tip: The Pass Mountain Hut (backcountry shelter) is accessible via the AT from here. The overlook itself is a fine drive-by."
+};
+const HAZEL_MTN_OL = {
+    name: "Hazel Mountain Overlook", location: "Skyline Drive · Mile 33.0",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.651, -78.333], placeSearch: "Hazel Mountain Overlook Shenandoah",
+    description: "West-facing overlook between Thornton Gap and Pinnacles. Good views down toward the Luray Valley — the road is quieter in this stretch before the Skyland crowd thickens.",
+    notes: "Tip: A scenic spot to pull over and eat a packed lunch with a valley view."
+};
+const PINNACLES_OL = {
+    name: "Pinnacles Overlook", location: "Skyline Drive · Mile 35.1",
+    tag: "overlook", tagLabel: "Scenic Overlook",
+    coords: [38.627, -78.351], placeSearch: "Pinnacles Overlook Shenandoah National Park",
+    description: "One of the most consistently praised overlooks on all of Skyline Drive. Wide southwest views frame Stony Man — the second-highest peak in Shenandoah — against the full expanse of the Shenandoah Valley. One of those spots where everything comes together.",
+    notes: "Tip: Morning light is exceptional here. Skyland Resort is a few miles south — good for restrooms and water refills."
+};
+const FRANKLIN_CLIFFS_OL = {
+    name: "Franklin Cliffs Overlook", location: "Skyline Drive · Mile 44.9",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.560, -78.395], placeSearch: "Franklin Cliffs Overlook Shenandoah",
+    description: "Dramatic layered basalt cliff faces just south of Crescent Rock. Exposed rock ledges look south and east. One of the more geological-feeling stops on the drive.",
+    notes: "Tip: The rock ledges here are great for lingering — often quieter than the Crescent Rock pullout a half-mile north."
+};
+const SPITLER_KNOLL_OL = {
+    name: "Spitler Knoll Overlook", location: "Skyline Drive · Mile 46.5",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.552, -78.405], placeSearch: "Spitler Knoll Overlook Shenandoah",
+    description: "East-facing overlook between Crescent Rock and Big Meadows — views toward the Virginia Piedmont rolling away far below. A change of perspective from the valley-facing overlooks earlier in the day.",
+    notes: "Tip: Sunrise from here would be spectacular — most Skyline Drive visitors only look west."
+};
+const SOUTH_RIVER_OL = {
+    name: "South River Overlook", location: "Skyline Drive · Mile 62.8",
+    tag: "overlook", tagLabel: "Scenic Overlook", optional: true,
+    coords: [38.413, -78.495], placeSearch: "South River Overlook Shenandoah",
+    description: "South-facing overlook in the quieter southern section of the park, between Bearfence Mountain and Swift Run Gap. The Shenandoah Valley curves away to the west and south.",
+    notes: "Tip: The South River Falls Trail (1.3 mi one-way) starts nearby — one of the most rewarding waterfall hikes in the park."
+};
+const LOFT_MTN_OL = {
+    name: "Loft Mountain Overlook", location: "Skyline Drive · Mile 79.5",
+    tag: "overlook", tagLabel: "Scenic Overlook",
+    coords: [38.256, -78.642], placeSearch: "Loft Mountain Overlook Shenandoah National Park",
+    description: "One of the most expansive views on all of Skyline Drive — a broad open summit with sweeping 270° panoramas south and west. Loft Mountain Campground and wayside (food, restrooms) are here. The southernmost major highlight before Rockfish Gap.",
+    notes: "Tip: The Loft Mountain Loop (2.8 mi) circles the summit with continuous ridge views. Drive back north to Swift Run Gap to exit and head home via US-33 west."
 };
 
 const mainStops = [
@@ -800,7 +877,10 @@ const loopStops = [
     mainStops[3],   // Front Royal (Mile 0 entry)
     mainStops[4],   // Front Royal Food Stop
     mainStops[5],   // Dickey Ridge VC (Mile 4.6)
+    RANGE_VIEW_OL,  // Mile 10.4 — optional
     mainStops[6],   // Hogback Overlook (Mile 20.8)
+    RATTLESNAKE_PT_OL, // Mile 22.2 — optional
+    PASS_MTN_OL,    // Mile 24.0 — optional
     {               // Thornton Gap — exit point on this loop
         ...mainStops[7],
         description: "Where US-211 crosses the Blue Ridge at Mile 31.5 — the exit point on the loop route, heading west toward Luray. The Panorama area here has some of the best views on the northern section of the drive.",
@@ -847,15 +927,23 @@ const southNorthStops = [
     {               // Swift Run Gap — entry point (south end)
         ...mainStops[11],
         description: "Where US-33 crosses the Blue Ridge at Mile 65.5 — the southern entry to Skyline Drive on this route. From here, drive the full ridge road northward through 65 miles of uninterrupted mountain scenery.",
-        notes: "Tip: Entrance fee collected here. Gas up before entering — no stations inside the park. Loft Mountain Overlook (Mile 79, just south of here) is worth a quick detour before you start north."
+        notes: "Tip: Entrance fee collected here. Gas up before entering — no stations inside the park."
     },
-    mainStops[10],  // Bearfence Mountain
-    { ...mainStops[9], lunch: true },  // Big Meadows — lunch
-    mainStops[8],   // Crescent Rock Overlook
-    mainStops[7],   // Thornton Gap
-    mainStops[6],   // Hogback Overlook
-    mainStops[5],   // Dickey Ridge VC
-    mainStops[4],   // Front Royal Food Stop
+    SOUTH_RIVER_OL,  // Mile 62.8 — optional, heading north
+    mainStops[10],   // Bearfence Mountain (Mile 56.4)
+    { ...mainStops[9], lunch: true },  // Big Meadows (Mile 51.2) — lunch
+    SPITLER_KNOLL_OL,   // Mile 46.5 — optional
+    FRANKLIN_CLIFFS_OL, // Mile 44.9 — optional
+    mainStops[8],    // Crescent Rock Overlook (Mile 44.4)
+    PINNACLES_OL,    // Mile 35.1 — primary
+    HAZEL_MTN_OL,    // Mile 33.0 — optional
+    mainStops[7],    // Thornton Gap (Mile 31.5)
+    PASS_MTN_OL,     // Mile 24.0 — optional
+    RATTLESNAKE_PT_OL, // Mile 22.2 — optional
+    mainStops[6],    // Hogback Overlook (Mile 20.8)
+    RANGE_VIEW_OL,   // Mile 10.4 — optional
+    mainStops[5],    // Dickey Ridge VC (Mile 4.6)
+    mainStops[4],    // Front Royal Food Stop
     {               // Front Royal — northern exit (Mile 0)
         ...mainStops[3],
         description: "Mile 0 of Skyline Drive — the northern terminus and the finish line for the full 65-mile northbound run. You've driven every mile of the ridge road. Front Royal's main street is a solid end-of-drive stop.",
@@ -877,17 +965,76 @@ const luraylStops = [
     LURAY_FOOD_STOP, // Luray — food stop (departure)
     {                // Thornton Gap — entry; head north to Hogback first
         ...mainStops[7],
-        description: "Where US-211 crosses the Blue Ridge at Mile 31.5 — the entry point for this route. From here, head north a few miles to Hogback Overlook first, then turn around and drive south through Crescent Rock to Big Meadows for lunch.",
+        description: "Where US-211 crosses the Blue Ridge at Mile 31.5 — the entry point for this route. From here, head north to Hogback Overlook first, then turn around and drive south through Pinnacles, Crescent Rock, and on to Big Meadows for lunch.",
         notes: "Tip: The Panorama area right at Thornton Gap has great westward views down the Luray Valley toward Massanutten Mountain — worth a slow pass even before heading north."
     },
-    mainStops[6],    // Hogback Overlook (Mile 20.8 — first overlook heading north)
-    mainStops[8],    // Crescent Rock Overlook (Mile 44.4 — heading south)
+    PASS_MTN_OL,     // Mile 24.0 — optional, heading north
+    RATTLESNAKE_PT_OL, // Mile 22.2 — optional, heading north
+    mainStops[6],    // Hogback Overlook (Mile 20.8 — northernmost point, turn around)
+    // — heading south from Hogback through Thornton Gap toward Big Meadows —
+    HAZEL_MTN_OL,    // Mile 33.0 — optional
+    PINNACLES_OL,    // Mile 35.1 — primary overlook
+    mainStops[8],    // Crescent Rock Overlook (Mile 44.4)
+    FRANKLIN_CLIFFS_OL, // Mile 44.9 — optional
+    SPITLER_KNOLL_OL,   // Mile 46.5 — optional
     {                // Big Meadows — turnaround
         ...mainStops[9],
         turnaround: true,
         description: "The turnaround point and lunch stop — a wide highland meadow at 3,500 ft with huge skies and deer almost always in the open. The lodge has a full dining room; the Byrd Visitor Center wayside has quick options. After lunch, Dark Hollow Falls is a fine leg-stretcher.",
         notes: "Tip: You'll pass back through Luray on the return — perfect dinner stop before the last leg home. Vic's Italian Kitchen or Elementary Burritos travel well if you'd rather take food to go."
     }
+];
+
+// ── Overlook Drive: Full Skyline N→S with all overlooks ───────────
+const overlookDriveStops = [
+    mainStops[0],   // Lost City
+    {   name: "Baker", location: "Hardy County, WV · WV-55 / US-220",
+        tag: "wv", tagLabel: "West Virginia", minor: true, coords: [39.027, -78.764],
+        description: "Small Hardy County crossroads — last good gas before heading east toward Wardensville and Virginia."
+    },
+    mainStops[1],   // Wardensville
+    {   name: "Toms Brook", location: "Shenandoah County, VA · US-11",
+        tag: "va", tagLabel: "Virginia", minor: true, coords: [38.957, -78.446],
+        description: "Small community on the Shenandoah Valley floor. The Blue Ridge runs along the eastern horizon — Front Royal is about 30 miles north."
+    },
+    {   name: "Strasburg", location: "Shenandoah County, VA · US-11",
+        tag: "va", tagLabel: "Virginia", minor: true, coords: [38.985, -78.358],
+        description: "One of the Valley's older towns on the original Valley Turnpike corridor. Head north toward US-340 and Front Royal."
+    },
+    mainStops[2],   // Cedar Creek & Belle Grove NHP (minor)
+    mainStops[3],   // Front Royal (Mile 0 — north entry)
+    mainStops[4],   // Front Royal Food Stop
+    mainStops[5],   // Dickey Ridge VC (Mile 4.6)
+    RANGE_VIEW_OL,     // Mile 10.4 — optional
+    mainStops[6],   // Hogback Overlook (Mile 20.8)
+    RATTLESNAKE_PT_OL, // Mile 22.2 — optional
+    PASS_MTN_OL,    // Mile 24.0 — optional
+    mainStops[7],   // Thornton Gap (Mile 31.5)
+    HAZEL_MTN_OL,   // Mile 33.0 — optional
+    PINNACLES_OL,   // Mile 35.1 — primary
+    mainStops[8],   // Crescent Rock (Mile 44.4)
+    FRANKLIN_CLIFFS_OL,  // Mile 44.9 — optional
+    SPITLER_KNOLL_OL,    // Mile 46.5 — optional
+    { ...mainStops[9], lunch: true },  // Big Meadows (Mile 51.2) — lunch
+    mainStops[10],  // Bearfence Mountain (Mile 56.4)
+    SOUTH_RIVER_OL, // Mile 62.8 — optional
+    {               // Swift Run Gap — exit; drive south to Loft Mountain
+        ...mainStops[11],
+        description: "Mile 65.5 — the southern park entry from US-33. On this route it's your exit after the full drive south. Continue another 14 miles to Loft Mountain before heading home.",
+        notes: "Tip: From here, Loft Mountain is 14 miles south — worth every minute. After Loft Mountain, return to Swift Run Gap and take US-33 west toward Luray and home."
+    },
+    LOFT_MTN_OL,    // Mile 79.5 — primary, southern turnaround
+    // Return: US-33 west → Luray → WV-259 → Lost City
+    { ...mainStops[12],
+        description: "Small community on US-33 heading west from Swift Run Gap — the road follows the South Fork Shenandoah River through a scenic agricultural valley. You're on the home stretch now."
+    },
+    LURAY_FOOD_STOP,   // Luray — dinner before the last leg
+    { name: "White House", location: "Page County, VA · US-211", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.676, -78.543], description: "Crossroads just west of Luray on US-211 — heading west toward New Market." },
+    { name: "New Market", location: "Shenandoah County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.649, -78.673], description: "Turn south briefly on US-11 then pick up VA-259 west toward the mountain crossing." },
+    { name: "Broadway", location: "Rockingham County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.608, -78.800], description: "Last good gas stop before climbing Shenandoah Mountain toward Lost City." },
+    { name: "Cootes Store", location: "Rockingham County, VA · VA-259", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.681, -78.932], description: "Crossing back over Shenandoah Mountain on VA-259 into Hardy County, WV." },
+    { name: "Intersections", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.755, -78.996], description: "Back in WV — WV-259 north toward Mathias and Lost City." },
+    { name: "Fulls Run", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.833, -78.983], description: "Last community before the final stretch home on WV-259." },
 ];
 
 // ── Route config ─────────────────────────────────────────────────
@@ -908,10 +1055,17 @@ const ROUTE_CONFIG = {
     },
     luray: {
         stops: luraylStops,
-        subtitle: 'Drive to Luray, enter at Thornton Gap (Mile 31.5), then head north first to Hogback Overlook before turning south to Crescent Rock and Big Meadows for lunch. Out and back — same road, different direction on the return.',
+        subtitle: 'Drive to Luray, enter at Thornton Gap (Mile 31.5), then head north first to Hogback Overlook before turning south through Pinnacles, Crescent Rock, and on to Big Meadows for lunch. Out and back.',
         stats: '≈ 195 mi · 6–8 hrs with stops',
         gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Luray,+VA/Big+Meadows+Shenandoah+National+Park/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = luraylStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
+    },
+    overlook: {
+        stops: overlookDriveStops,
+        subtitle: 'Enter at Front Royal (Mile 0) and drive the full Skyline Drive south — every major overlook from the Valley to the Blue Ridge, ending at Loft Mountain (Mile 79.5). Return via US-33 west and Luray.',
+        stats: '≈ 265 mi · 9–11 hrs with stops · full day',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Big+Meadows+Shenandoah+National+Park/Loft+Mountain+Campground+Shenandoah/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
+        polylineCoords() { const c = overlookDriveStops.map(s => s.coords); c.push(c[0]); return c; }
     }
 };
 
@@ -934,7 +1088,7 @@ let showMinorStops = false;
 
 function getFilteredStops(key) {
     const all = ROUTE_CONFIG[key].stops;
-    return showMinorStops ? all : all.filter(s => !s.minor);
+    return showMinorStops ? all : all.filter(s => !s.minor && !s.optional);
 }
 
 function activate(i) {
@@ -948,17 +1102,19 @@ function activate(i) {
 
 // ── Card builder ─────────────────────────────────────────────────
 function buildCards(stops, target) {
-    let mainIdx = 0, minorIdx = 0;
+    let mainIdx = 0, auxIdx = 0;
     stops.forEach((stop, i) => {
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `stop-${i}`;
-        const label = stop.minor ? String.fromCharCode(97 + minorIdx++) : String(++mainIdx);
+        const isAux = stop.minor || stop.optional;
+        const label = isAux ? String.fromCharCode(97 + auxIdx++) : String(++mainIdx);
+        const badgeExtra = stop.minor ? ' minor' : stop.optional ? ' optional' : '';
         const mapsUrl = stop.placeSearch
             ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.placeSearch)}`
             : `https://www.google.com/maps/@${stop.coords[0]},${stop.coords[1]},15z`;
         card.innerHTML = `
-            <div class="stop-badge${stop.minor ? ' minor' : ''}">${label}</div>
+            <div class="stop-badge${badgeExtra}">${label}</div>
             <div class="stop-body">
                 <div class="stop-tags">
                     <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
@@ -978,19 +1134,22 @@ function buildCards(stops, target) {
 
 // ── Marker builder ────────────────────────────────────────────────
 function addMarkers(stops) {
-    let mainIdx = 0, minorIdx = 0;
+    let mainIdx = 0, auxIdx = 0;
     stops.forEach((stop, i) => {
-        const label = stop.minor ? String.fromCharCode(97 + minorIdx++) : String(++mainIdx);
-        const shapeClass = stop.tag === 'overlook' ? ' overlook-pin'
+        const isAux = stop.minor || stop.optional;
+        const label = isAux ? String.fromCharCode(97 + auxIdx++) : String(++mainIdx);
+        const shapeClass = stop.tag === 'overlook' && stop.optional ? ' overlook-pin optional-pin'
+                         : stop.tag === 'overlook' ? ' overlook-pin'
                          : stop.tag === 'food'     ? ' food-pin'
                          : stop.tag === 'base'     ? ' base-pin'
                          : '';
+        const extraClass = stop.minor ? ' minor' : '';
         const labelHtml  = stop.tag === 'overlook'
                          ? `<span class="pin-label">${label}</span>`
                          : label;
         const icon = L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin${stop.minor ? ' minor' : ''}${shapeClass}" id="pin-${i}">${labelHtml}</div>`,
+            html: `<div class="marker-pin${extraClass}${shapeClass}" id="pin-${i}">${labelHtml}</div>`,
             iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
         });
         const marker = L.marker(stop.coords, { icon }).addTo(map);
