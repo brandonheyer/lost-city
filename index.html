@@ -619,7 +619,7 @@
     <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">N. Skyline</button>
     <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full S→N</button>
     <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
-    <button class="route-btn" id="btn-overlook" onclick="switchRoute('overlook')">Overlook Drive</button>
+    <button class="route-btn" id="btn-overlook" onclick="switchRoute('overlook')">Skyline Overview</button>
 </div>
 </div>
 
@@ -986,23 +986,9 @@ const luraylStops = [
 ];
 
 // ── Overlook Drive: Full Skyline N→S with all overlooks ───────────
+// Skyline Overview: all Skyline Drive stops north→south, no approach/return detail
 const overlookDriveStops = [
-    mainStops[0],   // Lost City
-    {   name: "Baker", location: "Hardy County, WV · WV-55 / US-220",
-        tag: "wv", tagLabel: "West Virginia", minor: true, coords: [39.027, -78.764],
-        description: "Small Hardy County crossroads — last good gas before heading east toward Wardensville and Virginia."
-    },
-    mainStops[1],   // Wardensville
-    {   name: "Toms Brook", location: "Shenandoah County, VA · US-11",
-        tag: "va", tagLabel: "Virginia", minor: true, coords: [38.957, -78.446],
-        description: "Small community on the Shenandoah Valley floor. The Blue Ridge runs along the eastern horizon — Front Royal is about 30 miles north."
-    },
-    {   name: "Strasburg", location: "Shenandoah County, VA · US-11",
-        tag: "va", tagLabel: "Virginia", minor: true, coords: [38.985, -78.358],
-        description: "One of the Valley's older towns on the original Valley Turnpike corridor. Head north toward US-340 and Front Royal."
-    },
-    mainStops[2],   // Cedar Creek & Belle Grove NHP (minor)
-    mainStops[3],   // Front Royal (Mile 0 — north entry)
+    mainStops[3],   // Front Royal (Mile 0)
     mainStops[4],   // Front Royal Food Stop
     mainStops[5],   // Dickey Ridge VC (Mile 4.6)
     RANGE_VIEW_OL,     // Mile 10.4 — optional
@@ -1015,26 +1001,11 @@ const overlookDriveStops = [
     mainStops[8],   // Crescent Rock (Mile 44.4)
     FRANKLIN_CLIFFS_OL,  // Mile 44.9 — optional
     SPITLER_KNOLL_OL,    // Mile 46.5 — optional
-    { ...mainStops[9], lunch: true },  // Big Meadows (Mile 51.2) — lunch
+    { ...mainStops[9], lunch: true },  // Big Meadows (Mile 51.2)
     mainStops[10],  // Bearfence Mountain (Mile 56.4)
     SOUTH_RIVER_OL, // Mile 62.8 — optional
-    {               // Swift Run Gap — exit; drive south to Loft Mountain
-        ...mainStops[11],
-        description: "Mile 65.5 — the southern park entry from US-33. On this route it's your exit after the full drive south. Continue another 14 miles to Loft Mountain before heading home.",
-        notes: "Tip: From here, Loft Mountain is 14 miles south — worth every minute. After Loft Mountain, return to Swift Run Gap and take US-33 west toward Luray and home."
-    },
-    LOFT_MTN_OL,    // Mile 79.5 — primary, southern turnaround
-    // Return: US-33 west → Luray → WV-259 → Lost City
-    { ...mainStops[12],
-        description: "Small community on US-33 heading west from Swift Run Gap — the road follows the South Fork Shenandoah River through a scenic agricultural valley. You're on the home stretch now."
-    },
-    LURAY_FOOD_STOP,   // Luray — dinner before the last leg
-    { name: "White House", location: "Page County, VA · US-211", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.676, -78.543], description: "Crossroads just west of Luray on US-211 — heading west toward New Market." },
-    { name: "New Market", location: "Shenandoah County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.649, -78.673], description: "Turn south briefly on US-11 then pick up VA-259 west toward the mountain crossing." },
-    { name: "Broadway", location: "Rockingham County, VA · US-11", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.608, -78.800], description: "Last good gas stop before climbing Shenandoah Mountain toward Lost City." },
-    { name: "Cootes Store", location: "Rockingham County, VA · VA-259", tag: "va", tagLabel: "Virginia", minor: true, coords: [38.681, -78.932], description: "Crossing back over Shenandoah Mountain on VA-259 into Hardy County, WV." },
-    { name: "Intersections", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.755, -78.996], description: "Back in WV — WV-259 north toward Mathias and Lost City." },
-    { name: "Fulls Run", location: "Hardy County, WV · WV-259", tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.833, -78.983], description: "Last community before the final stretch home on WV-259." },
+    mainStops[11],  // Swift Run Gap (Mile 65.5)
+    LOFT_MTN_OL,    // Mile 79.5
 ];
 
 // ── Route config ─────────────────────────────────────────────────
@@ -1062,10 +1033,10 @@ const ROUTE_CONFIG = {
     },
     overlook: {
         stops: overlookDriveStops,
-        subtitle: 'Enter at Front Royal (Mile 0) and drive the full Skyline Drive south — every major overlook from the Valley to the Blue Ridge, ending at Loft Mountain (Mile 79.5). Return via US-33 west and Luray.',
-        stats: '≈ 265 mi · 9–11 hrs with stops · full day',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Big+Meadows+Shenandoah+National+Park/Loft+Mountain+Campground+Shenandoah/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
-        polylineCoords() { const c = overlookDriveStops.map(s => s.coords); c.push(c[0]); return c; }
+        subtitle: 'Every Skyline Drive stop from Front Royal (Mile 0) to Loft Mountain (Mile 79.5), north to south. A reference view of the full drive — use the waypoint toggle to show optional overlooks.',
+        stats: 'Mile 0 → Mile 79.5 · 79.5 miles of Skyline Drive',
+        gmapsUrl: 'https://www.google.com/maps/dir/Front+Royal,+VA/Big+Meadows+Shenandoah+National+Park/Loft+Mountain+Campground+Shenandoah',
+        polylineCoords() { return overlookDriveStops.map(s => s.coords); }
     }
 };
 
