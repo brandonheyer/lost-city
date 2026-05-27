@@ -616,9 +616,8 @@
 </div>
 
 <div class="route-toggle">
-    <button class="route-btn active" id="btn-loop" onclick="switchRoute('loop')">N. Skyline</button>
-    <button class="route-btn" id="btn-southnorth" onclick="switchRoute('southnorth')">Full S→N</button>
-    <button class="route-btn" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
+    <button class="route-btn active" id="btn-luray" onclick="switchRoute('luray')">Via Luray</button>
+    <button class="route-btn" id="btn-south" onclick="switchRoute('south')">Full Southern</button>
     <button class="route-btn" id="btn-overlook" onclick="switchRoute('overlook')">Skyline Overview</button>
 </div>
 </div>
@@ -1007,28 +1006,47 @@ const overlookDriveStops = [
     LOFT_MTN_OL,    // Mile 79.5
 ];
 
+// ── Full Southern: Via Luray approach, Thornton Gap south to Loft Mtn ──
+const lurayFullSouthStops = [
+    mainStops[0],   // Lost City
+    { name: "Fulls Run",    location: "Hardy County, WV · WV-259",      tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.833, -78.983], description: "Small community along WV-259 heading south toward the Virginia border." },
+    { name: "Intersections",location: "Hardy County, WV · WV-259",      tag: "wv", tagLabel: "West Virginia", minor: true, coords: [38.755, -78.996], description: "Crossroads community in southern Hardy County on WV-259." },
+    { name: "Cootes Store", location: "Rockingham County, VA · VA-259", tag: "va", tagLabel: "Virginia",      minor: true, coords: [38.681, -78.932], description: "First Virginia community after crossing Shenandoah Mountain." },
+    { name: "Broadway",     location: "Rockingham County, VA · US-11",  tag: "va", tagLabel: "Virginia",      minor: true, coords: [38.608, -78.800], description: "Small city on the valley floor — good quick stop for gas before heading north to Luray." },
+    { name: "New Market",   location: "Shenandoah County, VA · US-11",  tag: "va", tagLabel: "Virginia",      minor: true, coords: [38.649, -78.673], description: "Turn east onto US-211 here to head toward Luray.", notes: "Tip: Last-chance gas before Luray." },
+    { name: "White House",  location: "Page County, VA · US-211",       tag: "va", tagLabel: "Virginia",      minor: true, coords: [38.676, -78.543], description: "Crossroads just west of Luray on US-211." },
+    LURAY_FOOD_STOP,
+    {   ...mainStops[7],    // Thornton Gap — entry, head south only
+        description: "Entry at Mile 31.5 — no north leg on this route. Head straight south into the heart of Shenandoah: Pinnacles, Crescent Rock, Big Meadows, Bearfence, and all the way to Loft Mountain as the turnaround.",
+        notes: "Tip: The WPA-era Panorama stone lodge is right at the gap (restaurant closed 2002, building still standing). Entrance station here if you haven't paid the fee."
+    },
+    HAZEL_MTN_OL,       // Mile 33.0 — optional
+    PINNACLES_OL,       // Mile 35.1 — primary
+    mainStops[8],       // Crescent Rock (Mile 44.4)
+    FRANKLIN_CLIFFS_OL, // Mile 44.9 — optional
+    SPITLER_KNOLL_OL,   // Mile 46.5 — optional
+    { ...mainStops[9], lunch: true }, // Big Meadows (Mile 51.2)
+    mainStops[10],      // Bearfence Mountain (Mile 56.4)
+    SOUTH_RIVER_OL,     // Mile 62.8 — optional
+    mainStops[11],      // Swift Run Gap (Mile 65.5)
+    { ...LOFT_MTN_OL, turnaround: true }, // Mile 79.5 — southern turnaround
+];
+
 // ── Route config ─────────────────────────────────────────────────
 const ROUTE_CONFIG = {
-    loop: {
-        stops: loopStops,
-        subtitle: 'Enter Skyline Drive at Front Royal (Mile 0), drive the northern stretch to Thornton Gap (Mile 31.5), exit west to Luray, and return to Lost City. A shorter, well-paced loop covering the best of the northern drive.',
-        stats: '≈ 175 mi · 5–7 hrs with stops',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Front+Royal,+VA/Thornton+Gap,+VA/Luray,+VA/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
-        polylineCoords() { const c = loopStops.map(s => s.coords); c.push(c[0]); return c; }
-    },
-    southnorth: {
-        stops: southNorthStops,
-        subtitle: 'The complete Skyline Drive, south to north. Approach via Smoke Hole Canyon, enter at Swift Run Gap (Mile 65.5), and drive all 65 miles of ridge road northward to Front Royal. Return west via Wardensville.',
-        stats: '≈ 245 mi · 8–10 hrs with stops · full day',
-        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Swift+Run+Gap+Shenandoah/Big+Meadows+Shenandoah+National+Park/Front+Royal,+VA/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
-        polylineCoords() { const c = southNorthStops.map(s => s.coords); c.push(c[0]); return c; }
-    },
     luray: {
         stops: luraylStops,
         subtitle: 'Drive to Luray, enter at Thornton Gap (Mile 31.5), then head north first to Hogback Overlook before turning south through Pinnacles, Crescent Rock, and on to Big Meadows for lunch. Out and back.',
         stats: '≈ 195 mi · 6–8 hrs with stops',
         gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Luray,+VA/Big+Meadows+Shenandoah+National+Park/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
         polylineCoords() { const c = luraylStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
+    },
+    south: {
+        stops: lurayFullSouthStops,
+        subtitle: 'Same Luray approach, but skip the north leg — enter at Thornton Gap (Mile 31.5) and drive straight south through every major stop to Loft Mountain (Mile 79.5). Out and back on the full southern half of Skyline Drive.',
+        stats: '≈ 230 mi · 8–10 hrs with stops · full day',
+        gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Luray,+VA/Big+Meadows+Shenandoah+National+Park/Loft+Mountain+Campground+Shenandoah/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
+        polylineCoords() { const c = lurayFullSouthStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
     },
     overlook: {
         stops: overlookDriveStops,
@@ -1230,7 +1248,7 @@ if (window.visualViewport) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────
-switchRoute('loop');
+switchRoute('luray');
 </script>
 
 </body>
