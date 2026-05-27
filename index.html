@@ -1046,7 +1046,24 @@ const ROUTE_CONFIG = {
         subtitle: 'Same Luray approach, but skip the north leg — enter at Thornton Gap (Mile 31.5) and drive straight south through every major stop to Loft Mountain (Mile 79.5). Out and back on the full southern half of Skyline Drive.',
         stats: '≈ 230 mi · 8–10 hrs with stops · full day',
         gmapsUrl: 'https://www.google.com/maps/dir/452+Settlers+Valley+Way,+Lost+City,+WV+26810/Luray,+VA/Big+Meadows+Shenandoah+National+Park/Loft+Mountain+Campground+Shenandoah/452+Settlers+Valley+Way,+Lost+City,+WV+26810',
-        polylineCoords() { const c = lurayFullSouthStops.map(s => s.coords); return [...c, ...c.slice().reverse().slice(1)]; }
+        polylineCoords() {
+            const fwd = lurayFullSouthStops.map(s => s.coords);
+            // Exit at Swift Run Gap, head home via US-33 W → US-340 N → Luray → WV-259
+            const returnLeg = [
+                [38.381, -78.525], // Swift Run Gap — exit west on US-33
+                [38.414, -78.631], // Elkton, VA — US-33 corridor
+                [38.535, -78.583], // US-340 north of Elkton
+                [38.663, -78.457], // Luray — pick up US-211 west
+                [38.676, -78.543], // White House
+                [38.649, -78.673], // New Market
+                [38.608, -78.800], // Broadway
+                [38.681, -78.932], // Cootes Store
+                [38.755, -78.996], // Intersections
+                [38.833, -78.983], // Fulls Run
+                [38.9028, -79.0817], // Lost City
+            ];
+            return [...fwd, ...returnLeg];
+        }
     },
     overlook: {
         stops: overlookDriveStops,
